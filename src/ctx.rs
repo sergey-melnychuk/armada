@@ -1,15 +1,16 @@
-use crate::rpc::gen::*;
+use crate::{db::Storage, rpc::gen::*};
 
+#[allow(dead_code)] // TODO: remove
 #[derive(Clone)]
 pub struct Context {
-    // TODO: storage
+    storage: Storage,
     // TODO: shared
     // TODO: etc
 }
 
 impl Context {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(storage: Storage) -> Self {
+        Self { storage }
     }
 }
 

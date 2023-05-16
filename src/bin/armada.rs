@@ -1,10 +1,11 @@
 use std::net::SocketAddr;
 
-use armada::ctx::Context;
+use armada::{ctx::Context, db::Storage};
 
 #[tokio::main]
 async fn main() {
-    let ctx = Context {};
+    let ctx = Context::new(Storage {});
     let addr = SocketAddr::from(([0, 0, 0, 0], 9000));
-    armada::rpc::serve(addr, ctx).await
+    let server = armada::rpc::serve(&addr, ctx).await;
+    server.wait().await
 }

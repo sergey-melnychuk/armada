@@ -4,15 +4,16 @@ Armada is a sibling of [Pathfinder](https://github.com/eqlabs/pathfinder).
 WIP PoC impl of [Starknet](https://www.starknet.io/en) full node.
 
 #### TODO
+- [ ] Sequencer client
 - [ ] Event producers
 - [ ] Event consumers
 - [ ] Ethereum client
-- [ ] Sequencer client
 - [ ] Storage (durable + in-memory)
 - [ ] Single shared context
 
 #### DONE
-- [x] JSON-RPC API (using [iamgroot](https://github.com/sergey-melnychuk/iamgroot))
+- [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
+- [x] Basic test util
 
 #### Misc
 - [xJonathanLEI/starknet-rs](https://github.com/xJonathanLEI/starknet-rs)

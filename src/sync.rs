@@ -6,6 +6,7 @@ use tokio::sync::{mpsc, Mutex, Notify};
 use crate::{
     db::Storage,
     eth::{EthApi, EthClient},
+    rpc::gen::Felt,
     seq::{SeqApi, SeqClient},
 };
 
@@ -74,11 +75,11 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Head {
     pub block_number: u64,
-    // pub block_hash: Felt,
-    // pub state_commitment: Felt,
+    pub block_hash: Felt,
+    pub state_commitment: Felt,
 }
 
 #[derive(Clone, Debug)]
@@ -143,7 +144,11 @@ pub mod ex {
         let eth = EthClient {};
         let seq = SeqClient {};
         let shared = Shared {
-            head: Head::default(),
+            head: Head {
+                block_number: 42,
+                block_hash: Felt::try_new("0x0")?,
+                state_commitment: Felt::try_new("0x0")?,
+            },
         };
         let storage = Storage {};
 
