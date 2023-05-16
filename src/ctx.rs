@@ -45,14 +45,14 @@ impl crate::rpc::gen::Rpc for Context {
         &self,
         _block_id: BlockId,
     ) -> std::result::Result<GetBlockWithTxsResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getStateUpdate(
         &self,
         _block_id: BlockId,
     ) -> std::result::Result<GetStateUpdateResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getStorageAt(
@@ -61,14 +61,14 @@ impl crate::rpc::gen::Rpc for Context {
         _key: StorageKey,
         _block_id: BlockId,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getTransactionByHash(
         &self,
         _transaction_hash: TxnHash,
     ) -> std::result::Result<Txn, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getTransactionByBlockIdAndIndex(
@@ -76,14 +76,14 @@ impl crate::rpc::gen::Rpc for Context {
         _block_id: BlockId,
         _index: Index,
     ) -> std::result::Result<Txn, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getTransactionReceipt(
         &self,
         _transaction_hash: TxnHash,
     ) -> std::result::Result<TxnReceipt, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getClass(
@@ -91,7 +91,7 @@ impl crate::rpc::gen::Rpc for Context {
         _block_id: BlockId,
         _class_hash: Felt,
     ) -> std::result::Result<GetClassResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getClassHashAt(
@@ -99,7 +99,7 @@ impl crate::rpc::gen::Rpc for Context {
         _block_id: BlockId,
         _contract_address: Address,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getClassAt(
@@ -107,14 +107,14 @@ impl crate::rpc::gen::Rpc for Context {
         _block_id: BlockId,
         _contract_address: Address,
     ) -> std::result::Result<GetClassAtResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getBlockTransactionCount(
         &self,
         _block_id: BlockId,
     ) -> std::result::Result<GetBlockTransactionCountResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn call(
@@ -122,7 +122,7 @@ impl crate::rpc::gen::Rpc for Context {
         _request: FunctionCall,
         _block_id: BlockId,
     ) -> std::result::Result<CallResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn estimateFee(
@@ -130,38 +130,38 @@ impl crate::rpc::gen::Rpc for Context {
         _request: Request,
         _block_id: BlockId,
     ) -> std::result::Result<EstimateFeeResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn blockHashAndNumber(
         &self,
     ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn chainId(&self) -> std::result::Result<ChainId, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn pendingTransactions(
         &self,
     ) -> std::result::Result<PendingTransactionsResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getEvents(
         &self,
         _filter: Filter,
     ) -> std::result::Result<EventsChunk, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn getNonce(
@@ -169,35 +169,35 @@ impl crate::rpc::gen::Rpc for Context {
         _block_id: BlockId,
         _contract_address: Address,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn addInvokeTransaction(
         &self,
         _invoke_transaction: BroadcastedInvokeTxn,
     ) -> std::result::Result<AddInvokeTransactionResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn addDeclareTransaction(
         &self,
         _declare_transaction: BroadcastedDeclareTxn,
     ) -> std::result::Result<AddDeclareTransactionResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn addDeployAccountTransaction(
         &self,
         _deploy_account_transaction: BroadcastedDeployAccountTxn,
     ) -> std::result::Result<AddDeployAccountTransactionResult, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn traceTransaction(
         &self,
         _transaction_hash: TxnHash,
     ) -> std::result::Result<TransactionTrace, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
 
     fn simulateTransaction(
@@ -207,13 +207,20 @@ impl crate::rpc::gen::Rpc for Context {
         _simulation_flags: SimulationFlags,
     ) -> std::result::Result<SimulateTransactionSimulatedTransactions, iamgroot::jsonrpc::Error>
     {
-        todo!()
+        not_implemented()
     }
 
     fn traceBlockTransactions(
         &self,
         _block_hash: BlockHash,
     ) -> std::result::Result<TraceBlockTransactionsTraces, iamgroot::jsonrpc::Error> {
-        todo!()
+        not_implemented()
     }
+}
+
+fn not_implemented<T>() -> std::result::Result<T, iamgroot::jsonrpc::Error> {
+    Err(iamgroot::jsonrpc::Error::new(
+        -64001,
+        "Not Implemented".to_string(),
+    ))
 }
