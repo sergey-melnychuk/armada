@@ -1,16 +1,30 @@
 # armada
-Armada is a sibling of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
-WIP PoC impl of [Starknet](https://www.starknet.io/en) full node.
+WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
-#### PLAN
+### Status
+
 - [ ] Sequencer client
-- [ ] Event producers
-- [ ] Event consumers
 - [ ] Ethereum client
-- [ ] Storage (durable + in-memory)
-- [ ] Single shared context
-- [ ] RPC methods impl:
+- [ ] Sync
+  - [ ] event producers
+    - [ ] "next" block
+    - [ ] pending block
+    - [ ] latest block
+    - [ ] ethereum state
+  - [ ] event handlers
+    - [ ] block
+    - [ ] reorg
+    - [ ] state update
+    - [ ] classes
+    - [ ] accounts
+  - [x] sync testkit
+- [ ] Storage
+  - [x] local
+  - [ ] remote (e.g. AWS S3)
+- [x] Single shared context
+- [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
+- [ ] JSON-RPC API methods impl:
   - [ ] `starknet_getBlockWithTxHashes`
   - [ ] `starknet_getBlockWithTxs`
   - [ ] `starknet_getStateUpdate`
@@ -38,11 +52,8 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node.
   - [ ] `starknet_simulateTransaction`
   - [ ] `starknet_traceBlockTransactions`
 
-#### DONE
-- [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
-- [x] Basic test utils
+### Relevant Links
 
-#### Misc
 - [xJonathanLEI/starknet-rs](https://github.com/xJonathanLEI/starknet-rs)
 - [lambdaclass/starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust)
 - [kkrt-labs/kakarot-rpc](https://github.com/kkrt-labs/kakarot-rpc)
