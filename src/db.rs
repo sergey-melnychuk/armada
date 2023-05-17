@@ -7,7 +7,7 @@ use std::{
 
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::rpc::gen::BlockWithTxs;
+use crate::api::gen::BlockWithTxs;
 
 #[derive(Clone)]
 pub struct Storage {

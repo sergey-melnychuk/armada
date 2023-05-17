@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, Mutex, Notify};
 
-use crate::{db::Storage, eth::EthApi, rpc::gen::Felt, seq::SeqApi};
+use crate::{api::gen::Felt, db::Storage, eth::EthApi, seq::SeqApi};
 
 pub struct Source<T, C> {
     tx: mpsc::Sender<T>,

@@ -5,7 +5,7 @@ use iamgroot::jsonrpc;
 use serde::{Deserialize, Serialize};
 use tokio::{sync::oneshot::Sender, task::JoinHandle};
 
-use crate::ctx::Context;
+use crate::{api::gen, ctx::Context};
 
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
@@ -113,5 +113,3 @@ pub async fn serve(addr: &SocketAddr, ctx: Context) -> Server {
 
     Server::new(jh, tx, addr)
 }
-
-include!(concat!(env!("OUT_DIR"), "/gen.rs"));

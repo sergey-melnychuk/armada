@@ -1,6 +1,6 @@
 use crate::{
+    api::gen::*,
     db::{Repo, Storage},
-    rpc::gen::*,
 };
 
 #[derive(Clone)]
@@ -16,7 +16,7 @@ impl Context {
     }
 }
 
-impl crate::rpc::gen::Rpc for Context {
+impl crate::api::gen::Rpc for Context {
     fn getBlockWithTxHashes(
         &self,
         _block_id: BlockId,
@@ -50,7 +50,7 @@ impl crate::rpc::gen::Rpc for Context {
         let hash = match block_id {
             BlockId::BlockHash { block_hash } => block_hash,
             _ => {
-                return Err(crate::rpc::gen::error::BLOCK_NOT_FOUND.into());
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
             }
         };
 
@@ -65,7 +65,7 @@ impl crate::rpc::gen::Rpc for Context {
                     format!("Failed to fetch block '{}': {:?}", key, e),
                 )
             })?
-            .ok_or(crate::rpc::gen::error::BLOCK_NOT_FOUND)?;
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
         Ok(GetBlockWithTxsResult::BlockWithTxs(block))
     }
