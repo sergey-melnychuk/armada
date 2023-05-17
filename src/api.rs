@@ -34,7 +34,9 @@ pub mod gen {
     pub struct BlockHeader {
         pub block_hash: BlockHash,
         pub block_number: BlockNumber,
+        #[serde(alias = "state_root")]
         pub new_root: Felt,
+        #[serde(alias = "parent_block_hash")]
         pub parent_hash: BlockHash,
         pub sequencer_address: Felt,
         pub timestamp: i64,
@@ -220,6 +222,7 @@ pub mod gen {
     // object: 'BROADCASTED_INVOKE_TXN_type'
     #[derive(Clone, Debug, Deserialize, Serialize)]
     pub enum BroadcastedInvokeTxnType {
+        #[serde(alias = "INVOKE_FUNCTION")]
         #[serde(rename = "INVOKE")]
         Invoke,
     }
@@ -863,6 +866,7 @@ pub mod gen {
     // object: 'INVOKE_TXN_RECEIPT_type'
     #[derive(Clone, Debug, Deserialize, Serialize)]
     pub enum InvokeTxnReceiptType {
+        #[serde(alias = "INVOKE_FUNCTION")]
         #[serde(rename = "INVOKE")]
         Invoke,
     }
@@ -899,6 +903,7 @@ pub mod gen {
     // object: 'INVOKE_TXN_type'
     #[derive(Clone, Debug, Deserialize, Serialize)]
     pub enum InvokeTxnType {
+        #[serde(alias = "INVOKE_FUNCTION")]
         #[serde(rename = "INVOKE")]
         Invoke,
     }
@@ -1339,6 +1344,7 @@ pub mod gen {
         Deploy,
         #[serde(rename = "DEPLOY_ACCOUNT")]
         DeployAccount,
+        #[serde(alias = "INVOKE_FUNCTION")]
         #[serde(rename = "INVOKE")]
         Invoke,
         #[serde(rename = "L1_HANDLER")]
