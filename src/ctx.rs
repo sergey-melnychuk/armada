@@ -1,22 +1,67 @@
 use crate::{
     api::gen::*,
     db::{Repo, Storage},
+    eth::EthApi,
+    seq::SeqApi,
 };
 
-#[derive(Clone)]
-pub struct Context {
-    storage: Storage,
-    // TODO: shared
-    // TODO: etc
+#[derive(Clone, Debug)]
+pub struct Head {
+    pub block_number: u64,
+    pub block_hash: Felt,
 }
 
-impl Context {
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
+impl Default for Head {
+    fn default() -> Self {
+        Self {
+            block_number: 0,
+            block_hash: Felt::try_new("0x0").unwrap(),
+        }
     }
 }
 
-impl crate::api::gen::Rpc for Context {
+#[derive(Clone, Debug, Default)]
+pub struct Shared {
+    pub head: Head,
+}
+
+#[derive(Clone)]
+pub struct Context<ETH, SEQ> {
+    pub db: Storage,
+    pub eth: ETH,
+    pub seq: SEQ,
+    pub shared: Shared,
+}
+
+impl<ETH, SEQ> Context<ETH, SEQ>
+where
+    ETH: EthApi + Send + Sync + 'static,
+    SEQ: SeqApi + Send + Sync + 'static,
+{
+    pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage) -> Self {
+        Self {
+            db,
+            eth,
+            seq,
+            shared,
+        }
+    }
+
+    // TODO: keep?
+    // pub async fn blocking<R, F>(&self, f: F) -> anyhow::Result<R>
+    // where
+    //     R: Send + 'static,
+    //     F: (FnOnce() -> anyhow::Result<R>) + Send + 'static,
+    // {
+    //     tokio::task::spawn_blocking(move || f()).await?
+    // }
+}
+
+impl<ETH, SEQ> crate::api::gen::Rpc for Context<ETH, SEQ>
+where
+    ETH: EthApi + Send + Sync + 'static,
+    SEQ: SeqApi + Send + Sync + 'static,
+{
     fn getBlockWithTxHashes(
         &self,
         _block_id: BlockId,
@@ -56,7 +101,7 @@ impl crate::api::gen::Rpc for Context {
 
         let key = hash.0.as_ref();
         let block = self
-            .storage
+            .db
             .blocks()
             .get(key)
             .map_err(|e| {

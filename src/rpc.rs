@@ -5,7 +5,7 @@ use iamgroot::jsonrpc;
 use serde::{Deserialize, Serialize};
 use tokio::{sync::oneshot::Sender, task::JoinHandle};
 
-use crate::{api::gen, ctx::Context};
+use crate::{api::gen, ctx::Context, eth::EthApi, seq::SeqApi};
 
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
@@ -21,10 +21,14 @@ enum Response {
     Batch(Vec<jsonrpc::Response>),
 }
 
-async fn handle_request(
-    State(state): State<Context>,
+async fn handle_request<ETH, SEQ>(
+    State(state): State<Context<ETH, SEQ>>,
     Json(req): Json<Request>,
-) -> impl IntoResponse {
+) -> impl IntoResponse
+where
+    ETH: EthApi + Send + Sync + 'static,
+    SEQ: SeqApi + Send + Sync + 'static,
+{
     match req {
         Request::Single(req) => {
             log::info!("method: {}", req.method);
@@ -93,7 +97,11 @@ impl Server {
     }
 }
 
-pub async fn serve(addr: &SocketAddr, ctx: Context) -> Server {
+pub async fn serve<ETH, SEQ>(addr: &SocketAddr, ctx: Context<ETH, SEQ>) -> Server
+where
+    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+{
     let app = Router::new()
         .route("/rpc/v0.3", post(handle_request))
         .with_state(ctx);

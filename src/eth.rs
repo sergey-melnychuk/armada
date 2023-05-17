@@ -13,6 +13,7 @@ impl EthApi for EthClient {
 }
 
 #[allow(dead_code)] // TODO: remove
+#[derive(Clone)]
 pub struct EthClient {
     url: String,
 }

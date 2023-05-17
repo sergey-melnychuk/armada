@@ -1,7 +1,10 @@
-use armada::{ctx::Context, db::Storage, rpc::Server};
+use armada::{ctx::{Context, Shared}, db::Storage, rpc::Server};
 use iamgroot::jsonrpc;
 use serde::{de::DeserializeOwned, Serialize};
 use tempdir::TempDir;
+
+pub mod eth;
+pub mod seq;
 
 pub struct Test {
     dir: Option<TempDir>,
@@ -14,9 +17,14 @@ pub struct Test {
 impl Test {
     pub async fn new() -> Self {
         let id = format!("{}", uuid::Uuid::new_v4());
-        let dir = TempDir::new(&id).expect("temp dir");
+        let dir = TempDir::new(&id).expect("temp-dir");
+
+        let eth = eth::TestEth {};
+        let seq = seq::TestSeq {};
+
+        let shared = Shared::default();
         let db = Storage::new(dir.path());
-        let ctx = Context::new(db.clone());
+        let ctx = Context::new(eth, seq, shared, db.clone());
 
         let http = reqwest::ClientBuilder::new().build().expect("http");
         let server = armada::rpc::serve(&([127, 0, 0, 1], 0).into(), ctx).await;

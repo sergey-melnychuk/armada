@@ -3,8 +3,6 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, Mutex, Notify};
 
-use crate::{api::gen::Felt, db::Storage, eth::EthApi, seq::SeqApi};
-
 pub struct Source<T, C> {
     tx: mpsc::Sender<T>,
     rx: mpsc::Receiver<T>,
@@ -70,53 +68,15 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Head {
-    pub block_number: u64,
-    pub block_hash: Felt,
-}
-
-#[allow(dead_code)] // TODO: remove
-#[derive(Clone, Debug)]
-pub struct Shared {
-    head: Head,
-}
-
-#[allow(dead_code)] // TODO: remove
-pub struct Context<ETH, SEQ> {
-    db: Storage,
-    eth: ETH,
-    seq: SEQ,
-    shared: Shared,
-}
-
-impl<ETH, SEQ> Context<ETH, SEQ>
-where
-    ETH: EthApi + Send + Sync + 'static,
-    SEQ: SeqApi + Send + Sync + 'static,
-{
-    pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage) -> Self {
-        Self {
-            db,
-            eth,
-            seq,
-            shared,
-        }
-    }
-
-    // TODO: keep?
-    // pub async fn blocking<R, F>(&self, f: F) -> anyhow::Result<R>
-    // where
-    //     R: Send + 'static,
-    //     F: (FnOnce() -> anyhow::Result<R>) + Send + 'static,
-    // {
-    //     tokio::task::spawn_blocking(move || f()).await?
-    // }
-}
-
 #[cfg(test)]
 pub mod ex {
-    use crate::{eth::EthClient, seq::SeqClient};
+    use crate::{
+        api::gen::Felt,
+        ctx::{Context, Head, Shared},
+        db::Storage,
+        eth::{EthApi, EthClient},
+        seq::SeqClient,
+    };
 
     use super::*;
 
@@ -136,7 +96,7 @@ pub mod ex {
     }
 
     const ETH_URL: &str = "https://eth.llamarpc.com";
-    const SEQ_URL: &str = "https://alpha-mainnet.starknet.io/gateway";
+    const SEQ_URL: &str = "https://alpha-mainnet.starknet.io";
 
     #[tokio::test]
     #[ignore = "this is just a usage sample"]
