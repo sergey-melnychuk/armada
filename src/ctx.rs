@@ -3,7 +3,6 @@ use crate::{
     rpc::gen::*,
 };
 
-#[allow(dead_code)] // TODO: remove
 #[derive(Clone)]
 pub struct Context {
     storage: Storage,

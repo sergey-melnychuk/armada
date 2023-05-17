@@ -1,9 +1,26 @@
 // TODO: sequencer DTO, API
 
+#[async_trait::async_trait]
 pub trait SeqApi {
-    //
+    async fn call(&self) -> u64;
 }
 
-pub struct SeqClient {}
+#[async_trait::async_trait]
+impl SeqApi for SeqClient {
+    async fn call(&self) -> u64 {
+        42
+    }
+}
 
-impl SeqApi for SeqClient {}
+#[allow(dead_code)] // TODO: remove
+pub struct SeqClient {
+    url: String,
+}
+
+impl SeqClient {
+    pub fn new(url: &str) -> Self {
+        Self {
+            url: url.to_string(),
+        }
+    }
+}

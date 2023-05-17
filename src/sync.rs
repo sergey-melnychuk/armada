@@ -3,12 +3,7 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, Mutex, Notify};
 
-use crate::{
-    db::Storage,
-    eth::{EthApi, EthClient},
-    rpc::gen::Felt,
-    seq::{SeqApi, SeqClient},
-};
+use crate::{db::Storage, eth::EthApi, rpc::gen::Felt, seq::SeqApi};
 
 pub struct Source<T, C> {
     tx: mpsc::Sender<T>,
@@ -79,19 +74,20 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
 pub struct Head {
     pub block_number: u64,
     pub block_hash: Felt,
-    pub state_commitment: Felt,
 }
 
+#[allow(dead_code)] // TODO: remove
 #[derive(Clone, Debug)]
 pub struct Shared {
     head: Head,
 }
 
+#[allow(dead_code)] // TODO: remove
 pub struct Context<ETH, SEQ> {
+    db: Storage,
     eth: ETH,
     seq: SEQ,
     shared: Shared,
-    storage: Storage,
 }
 
 impl<ETH, SEQ> Context<ETH, SEQ>
@@ -99,12 +95,12 @@ where
     ETH: EthApi + Send + Sync + 'static,
     SEQ: SeqApi + Send + Sync + 'static,
 {
-    pub fn new(eth: ETH, seq: SEQ, shared: Shared, storage: Storage) -> Self {
+    pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage) -> Self {
         Self {
+            db,
             eth,
             seq,
             shared,
-            storage,
         }
     }
 
@@ -118,22 +114,26 @@ where
     // }
 }
 
-#[derive(Clone, Debug)]
-pub enum Event {
-    X(u64),
-}
-
-async fn poll_x(ctx: Arc<Mutex<Context<EthClient, SeqClient>>>) -> anyhow::Result<Option<Event>> {
-    let x = {
-        let eth = &ctx.lock().await.eth;
-        eth.call().await
-    };
-    Ok(Some(Event::X(x)))
-}
-
 #[cfg(test)]
 pub mod ex {
+    use crate::{eth::EthClient, seq::SeqClient};
+
     use super::*;
+
+    #[derive(Clone, Debug)]
+    pub enum Event {
+        X(u64),
+    }
+
+    async fn poll_x(
+        ctx: Arc<Mutex<Context<EthClient, SeqClient>>>,
+    ) -> anyhow::Result<Option<Event>> {
+        let x = {
+            let eth = &ctx.lock().await.eth;
+            eth.call().await
+        };
+        Ok(Some(Event::X(x)))
+    }
 
     const ETH_URL: &str = "https://eth.llamarpc.com";
     const SEQ_URL: &str = "https://alpha-mainnet.starknet.io/gateway";
@@ -141,13 +141,12 @@ pub mod ex {
     #[tokio::test]
     #[ignore = "this is just a usage sample"]
     async fn example() -> anyhow::Result<()> {
-        let eth = EthClient {};
-        let seq = SeqClient {};
+        let eth = EthClient::new(ETH_URL);
+        let seq = SeqClient::new(SEQ_URL);
         let shared = Shared {
             head: Head {
                 block_number: 42,
                 block_hash: Felt::try_new("0x0")?,
-                state_commitment: Felt::try_new("0x0")?,
             },
         };
         let storage = Storage::new("./target/db");

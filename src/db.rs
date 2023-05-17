@@ -38,8 +38,8 @@ impl Storage {
 
 pub trait Repo<T: Serialize + DeserializeOwned> {
     fn new(base: &Path) -> Self;
-    fn base(&self) -> &Path;
     fn get(&self, key: &str) -> anyhow::Result<Option<T>>;
+    fn del(&self, key: &str) -> anyhow::Result<Option<T>>;
     fn put(&mut self, key: &str, val: T) -> anyhow::Result<()>;
 }
 
@@ -62,10 +62,6 @@ where
         }
     }
 
-    fn base(&self) -> &Path {
-        &self.base
-    }
-
     fn get(&self, key: &str) -> anyhow::Result<Option<T>> {
         let mut path = self.base.clone();
         path.push(format!("{}.json", key));
@@ -79,6 +75,23 @@ where
         let _ = file.read_to_string(&mut json)?;
 
         let val: T = serde_json::from_str(&json)?;
+        Ok(Some(val))
+    }
+
+    fn del(&self, key: &str) -> anyhow::Result<Option<T>> {
+        let mut path = self.base.clone();
+        path.push(format!("{}.json", key));
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        let mut file = File::open(&path)?;
+
+        let mut json = String::with_capacity(1024);
+        let _ = file.read_to_string(&mut json)?;
+
+        let val: T = serde_json::from_str(&json)?;
+        fs::remove_file(path)?;
         Ok(Some(val))
     }
 
