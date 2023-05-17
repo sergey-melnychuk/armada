@@ -1,17 +1,30 @@
-use armada::{ctx::{Context, Shared}, db::Storage, rpc::Server};
+use std::time::Duration;
+
+use armada::{
+    cfg::Config,
+    ctx::{Context, Shared},
+    db::Storage,
+    util::Waiter,
+};
 use iamgroot::jsonrpc;
 use serde::{de::DeserializeOwned, Serialize};
 use tempdir::TempDir;
 
+use self::eth::TestEth;
+use self::seq::TestSeq;
+
 pub mod eth;
 pub mod seq;
+
+// const ETH_URL: &str = "https://eth.llamarpc.com";
+// const SEQ_URL: &str = "https://alpha-mainnet.starknet.io";
 
 pub struct Test {
     dir: Option<TempDir>,
     url: String,
-    db: Storage,
     http: reqwest::Client,
-    server: Server,
+    server: Waiter,
+    ctx: Context<TestEth, TestSeq>,
 }
 
 impl Test {
@@ -19,31 +32,35 @@ impl Test {
         let id = format!("{}", uuid::Uuid::new_v4());
         let dir = TempDir::new(&id).expect("temp-dir");
 
-        let eth = eth::TestEth {};
-        let seq = seq::TestSeq {};
+        let eth = TestEth::new();
+        let seq = TestSeq::new();
 
         let shared = Shared::default();
         let db = Storage::new(dir.path());
-        let ctx = Context::new(eth, seq, shared, db.clone());
+
+        let config = Config::new(Duration::from_secs(1));
+
+        let ctx = Context::new(eth, seq, shared, db, config);
 
         let http = reqwest::ClientBuilder::new().build().expect("http");
-        let server = armada::rpc::serve(&([127, 0, 0, 1], 0).into(), ctx).await;
-        let url = format!("http://{}/rpc/v0.3", server.addr());
+        let (addr, server) = armada::rpc::serve(&([127, 0, 0, 1], 0).into(), ctx.clone()).await;
+        let url = format!("http://{}/rpc/v0.3", addr);
+
         Self {
             dir: Some(dir),
             url,
-            db,
             http,
             server,
+            ctx,
         }
     }
 
-    pub fn db(&self) -> &Storage {
-        &self.db
+    pub fn ctx(&self) -> &Context<TestEth, TestSeq> {
+        &self.ctx
     }
 
-    pub fn db_mut(&mut self) -> &mut Storage {
-        &mut self.db
+    pub fn ctx_mut(&mut self) -> &mut Context<TestEth, TestSeq> {
+        &mut self.ctx
     }
 
     pub async fn rpc<T: Serialize, R: DeserializeOwned>(&self, req: T) -> anyhow::Result<R> {

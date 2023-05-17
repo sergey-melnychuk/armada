@@ -12,7 +12,6 @@ impl SeqApi for SeqClient {
     }
 }
 
-#[allow(dead_code)] // TODO: remove
 #[derive(Clone)]
 pub struct SeqClient {
     url: String,

@@ -13,10 +13,10 @@ mod get_block_with_tx_hashes {
 
     #[tokio::test]
     async fn test_genesis_block() -> anyhow::Result<()> {
-        let test = common::Test::new().await;
+        let mut test = common::Test::new().await;
 
         let hash = "0x0";
-        assert!(test.db().blocks().get(hash)?.is_none());
+        assert!(test.ctx_mut().db.blocks().get(hash)?.is_none());
 
         let res: GetBlockWithTxHashesResult = test
             .rpc(json!({
@@ -52,7 +52,7 @@ mod get_block_with_txs {
         let hash = block.block_header.block_hash.0.as_ref().clone();
 
         let mut test = common::Test::new().await;
-        test.db_mut().blocks_mut().put(&hash, block)?;
+        test.ctx_mut().db.blocks_mut().put(&hash, block)?;
 
         let res: GetBlockWithTxsResult = test
             .rpc(json!({

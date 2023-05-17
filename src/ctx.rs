@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
+use tokio::{sync::Mutex, time::Instant};
+
 use crate::{
     api::gen::*,
+    cfg::Config,
     db::{Repo, Storage},
     eth::EthApi,
     seq::SeqApi,
@@ -27,10 +32,12 @@ pub struct Shared {
 
 #[derive(Clone)]
 pub struct Context<ETH, SEQ> {
+    pub since: Instant,
     pub db: Storage,
     pub eth: ETH,
     pub seq: SEQ,
-    pub shared: Shared,
+    pub shared: Arc<Mutex<Shared>>,
+    pub config: Config,
 }
 
 impl<ETH, SEQ> Context<ETH, SEQ>
@@ -38,13 +45,19 @@ where
     ETH: EthApi + Send + Sync + 'static,
     SEQ: SeqApi + Send + Sync + 'static,
 {
-    pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage) -> Self {
+    pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage, config: Config) -> Self {
         Self {
+            since: Instant::now(),
             db,
             eth,
             seq,
-            shared,
+            shared: Arc::new(Mutex::new(shared)),
+            config,
         }
+    }
+
+    pub fn shared(&self) -> Arc<Mutex<Shared>> {
+        self.shared.clone()
     }
 
     // TODO: keep?

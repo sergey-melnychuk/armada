@@ -1,11 +1,10 @@
-use std::{cell::RefCell, net::SocketAddr};
+use std::net::SocketAddr;
 
 use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
 use iamgroot::jsonrpc;
 use serde::{Deserialize, Serialize};
-use tokio::{sync::oneshot::Sender, task::JoinHandle};
 
-use crate::{api::gen, ctx::Context, eth::EthApi, seq::SeqApi};
+use crate::{api::gen, ctx::Context, eth::EthApi, seq::SeqApi, util::Waiter};
 
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
@@ -48,56 +47,7 @@ where
     }
 }
 
-pub struct Server {
-    jh: RefCell<Option<JoinHandle<()>>>,
-    tx: RefCell<Option<Sender<()>>>,
-    addr: SocketAddr,
-}
-
-impl Server {
-    fn new(jh: JoinHandle<()>, tx: Sender<()>, addr: SocketAddr) -> Self {
-        Self {
-            jh: RefCell::new(Some(jh)),
-            tx: RefCell::new(Some(tx)),
-            addr,
-        }
-    }
-
-    pub fn unfold(&mut self) -> Option<(JoinHandle<()>, Sender<()>)> {
-        if self.jh.borrow().is_none() || self.tx.borrow().is_none() {
-            return None;
-        }
-        let jh = self.jh.borrow_mut().take().unwrap();
-        let tx = self.tx.borrow_mut().take().unwrap();
-        Some((jh, tx))
-    }
-
-    pub fn addr(&self) -> SocketAddr {
-        self.addr
-    }
-
-    pub async fn wait(&self) {
-        if self.jh.borrow().is_none() {
-            return;
-        }
-        let jh = self.jh.borrow_mut().take().unwrap();
-        if let Err(e) = jh.await {
-            log::error!("Server task terminated with error: {e}");
-        }
-    }
-
-    pub async fn stop(&self) {
-        if self.tx.borrow().is_none() {
-            return;
-        }
-        let tx = self.tx.borrow_mut().take().unwrap();
-        if tx.send(()).is_err() {
-            log::error!("Server shutdown attempt failed");
-        }
-    }
-}
-
-pub async fn serve<ETH, SEQ>(addr: &SocketAddr, ctx: Context<ETH, SEQ>) -> Server
+pub async fn serve<ETH, SEQ>(addr: &SocketAddr, ctx: Context<ETH, SEQ>) -> (SocketAddr, Waiter)
 where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
@@ -119,5 +69,5 @@ where
 
     let jh = tokio::spawn(async move { graceful.await.unwrap() });
 
-    Server::new(jh, tx, addr)
+    (addr, Waiter::new(jh, tx))
 }

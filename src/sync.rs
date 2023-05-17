@@ -1,7 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
 use futures::Future;
-use tokio::sync::{mpsc, Mutex, Notify};
+use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
+
+use crate::{
+    ctx::Context,
+    eth::EthApi,
+    seq::SeqApi,
+    util::{is_open, Waiter},
+};
 
 pub struct Source<T, C> {
     tx: mpsc::Sender<T>,
@@ -16,6 +23,10 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
         let go = Arc::new(Notify::new());
         let ctx = Arc::new(Mutex::new(ctx));
         Self { tx, rx, go, ctx }
+    }
+
+    pub fn ctx(&self) -> Arc<Mutex<C>> {
+        self.ctx.clone()
     }
 
     pub async fn add<F, G>(&self, name: &str, f: F, poll: Duration)
@@ -33,6 +44,7 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
         tokio::spawn(async move {
             ready.notify_one();
             go.notified().await;
+            tokio::time::sleep(poll).await;
             while !tx.is_closed() {
                 let r = f(ctx.clone());
                 let r = r.await;
@@ -68,60 +80,85 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
     }
 }
 
-#[cfg(test)]
-pub mod ex {
-    use crate::{
-        api::gen::Felt,
-        ctx::{Context, Head, Shared},
-        db::Storage,
-        eth::{EthApi, EthClient},
-        seq::SeqClient,
-    };
+pub async fn sync<ETH, SEQ, F, R>(source: Source<Event, Context<ETH, SEQ>>, handler: F) -> Waiter
+where
+    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    F: Fn(Arc<Mutex<Context<ETH, SEQ>>>, Event) -> R + Copy + Send + Sync + 'static,
+    R: Future<Output = ()> + Send + 'static,
+{
+    let delay = source.ctx().lock().await.config.poll_delay;
 
-    use super::*;
+    let (tx, mut rx) = channel::<()>();
+    let jh = tokio::spawn(async move {
+        let mut source = source.run();
 
-    #[derive(Clone, Debug)]
-    pub enum Event {
-        X(u64),
-    }
-
-    async fn poll_x(
-        ctx: Arc<Mutex<Context<EthClient, SeqClient>>>,
-    ) -> anyhow::Result<Option<Event>> {
-        let x = {
-            let eth = &ctx.lock().await.eth;
-            eth.call().await
-        };
-        Ok(Some(Event::X(x)))
-    }
-
-    const ETH_URL: &str = "https://eth.llamarpc.com";
-    const SEQ_URL: &str = "https://alpha-mainnet.starknet.io";
-
-    #[tokio::test]
-    #[ignore = "this is just a usage sample"]
-    async fn example() -> anyhow::Result<()> {
-        let eth = EthClient::new(ETH_URL);
-        let seq = SeqClient::new(SEQ_URL);
-        let shared = Shared {
-            head: Head {
-                block_number: 42,
-                block_hash: Felt::try_new("0x0")?,
-            },
-        };
-        let storage = Storage::new("./target/db");
-
-        let ctx = Context::new(eth, seq, shared, storage);
-
-        let poll = Duration::from_secs(3);
-        let src = Source::new(ctx);
-        src.add("x", poll_x, poll).await;
-        let mut src = src.run();
-
-        while let Some(event) = src.get().await {
-            println!("{event:?}");
+        while let Some(event) = source.get().await {
+            let ctx = source.ctx();
+            tokio::spawn(async move {
+                handler(ctx, event).await;
+            });
+            if !is_open(&mut rx) {
+                break;
+            }
         }
+        tokio::time::sleep(delay).await;
+    });
 
-        Ok(())
+    Waiter::new(jh, tx)
+}
+
+#[derive(Debug)]
+pub enum Event {
+    Ethereum(u64, crate::api::gen::Felt),
+    Block(crate::api::gen::BlockWithTxs),
+    Pending(crate::api::gen::PendingBlockWithTxs),
+    Latest(crate::api::gen::BlockWithTxs),
+    Uptime(u64),
+    TestEth(u64), // TODO: remove
+    TestSeq(u64), // TODO: remove
+}
+
+pub async fn handler<ETH, SEQ>(_ctx: Arc<Mutex<Context<ETH, SEQ>>>, event: Event)
+where
+    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+{
+    #[allow(clippy::single_match)] // TODO: remove
+    match event {
+        Event::Uptime(seconds) => {
+            tracing::info!(seconds, "uptime");
+        }
+        _ => {}
     }
+}
+
+pub async fn poll_uptime<ETH, SEQ>(
+    ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+) -> anyhow::Result<Option<Event>>
+where
+    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+{
+    let instant = ctx.lock().await.since;
+    let seconds = instant.elapsed().as_secs();
+    Ok(Some(Event::Uptime(seconds)))
+}
+
+pub async fn poll_eth<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
+where
+    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+{
+    let x = ctx.lock().await.eth.call().await;
+    Ok(Some(Event::TestEth(x)))
+}
+
+pub async fn poll_seq<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
+where
+    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+{
+    let x = ctx.lock().await.seq.call().await;
+    Ok(Some(Event::TestSeq(x)))
 }
