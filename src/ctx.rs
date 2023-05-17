@@ -66,7 +66,7 @@ impl crate::rpc::gen::Rpc for Context {
                     format!("Failed to fetch block '{}': {:?}", key, e),
                 )
             })?
-            .ok_or_else(|| crate::rpc::gen::error::BLOCK_NOT_FOUND)?;
+            .ok_or(crate::rpc::gen::error::BLOCK_NOT_FOUND)?;
 
         Ok(GetBlockWithTxsResult::BlockWithTxs(block))
     }

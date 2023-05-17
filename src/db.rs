@@ -18,9 +18,9 @@ impl Storage {
     pub fn new<P: AsRef<Path>>(base: P) -> Self {
         fs::create_dir_all(base.as_ref()).ok();
 
-        let base: PathBuf = base.as_ref().to_owned();
+        let base = base.as_ref();
 
-        let mut blocks = base.clone();
+        let mut blocks = base.to_owned();
         blocks.push("block");
         let blocks = DirRepo::new(&blocks);
 
