@@ -150,7 +150,7 @@ pub mod ex {
                 state_commitment: Felt::try_new("0x0")?,
             },
         };
-        let storage = Storage {};
+        let storage = Storage::new("./target/db");
 
         let ctx = Context::new(eth, seq, shared, storage);
 

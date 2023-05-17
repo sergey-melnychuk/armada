@@ -1,4 +1,7 @@
-use crate::{db::Storage, rpc::gen::*};
+use crate::{
+    db::{Repo, Storage},
+    rpc::gen::*,
+};
 
 #[allow(dead_code)] // TODO: remove
 #[derive(Clone)]
@@ -43,9 +46,29 @@ impl crate::rpc::gen::Rpc for Context {
 
     fn getBlockWithTxs(
         &self,
-        _block_id: BlockId,
+        block_id: BlockId,
     ) -> std::result::Result<GetBlockWithTxsResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let hash = match block_id {
+            BlockId::BlockHash { block_hash } => block_hash,
+            _ => {
+                return Err(crate::rpc::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let key = hash.0.as_ref();
+        let block = self
+            .storage
+            .blocks()
+            .get(key)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to fetch block '{}': {:?}", key, e),
+                )
+            })?
+            .ok_or_else(|| crate::rpc::gen::error::BLOCK_NOT_FOUND)?;
+
+        Ok(GetBlockWithTxsResult::BlockWithTxs(block))
     }
 
     fn getStateUpdate(
