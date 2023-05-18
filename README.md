@@ -54,6 +54,7 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
 
 ### Relevant Links
 
-- [xJonathanLEI/starknet-rs](https://github.com/xJonathanLEI/starknet-rs)
-- [lambdaclass/starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust)
-- [kkrt-labs/kakarot-rpc](https://github.com/kkrt-labs/kakarot-rpc)
+- [starknet-rs](https://github.com/xJonathanLEI/starknet-rs)
+- [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust)
+- [kakarot-rpc](https://github.com/kkrt-labs/kakarot-rpc)
+- [katana](https://github.com/dojoengine/katana)
