@@ -12,7 +12,7 @@ mod get_block_with_tx_hashes {
     use super::*;
 
     #[tokio::test]
-    async fn test_genesis_block() -> anyhow::Result<()> {
+    async fn test_hardcoded_block() -> anyhow::Result<()> {
         let mut test = common::Test::new().await;
 
         let hash = "0x0";
@@ -47,7 +47,7 @@ mod get_block_with_txs {
 
     #[tokio::test]
     async fn test_existing_block() -> anyhow::Result<()> {
-        let json = fs::read_to_string("./etc/805543.patched.json")?;
+        let json = fs::read_to_string("./etc/805543-block.json")?;
         let block: BlockWithTxs = serde_json::from_str(&json)?;
         let hash = block.block_header.block_hash.0.as_ref().clone();
 

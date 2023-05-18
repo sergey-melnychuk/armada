@@ -33,6 +33,30 @@ impl TestSeq {
 
 #[async_trait::async_trait]
 impl SeqApi for TestSeq {
+    async fn get_block_by_number(
+        &self,
+        _block_number: u64,
+    ) -> anyhow::Result<Option<armada::api::gen::BlockWithTxs>> {
+        Ok(None)
+    }
+
+    async fn get_block_by_hash(
+        &self,
+        _block_hash: &str,
+    ) -> anyhow::Result<Option<armada::api::gen::BlockWithTxs>> {
+        Ok(None)
+    }
+
+    async fn get_latest_block(&self) -> anyhow::Result<Option<armada::api::gen::BlockWithTxs>> {
+        Ok(None)
+    }
+
+    async fn get_pending_block(
+        &self,
+    ) -> anyhow::Result<Option<armada::api::gen::PendingBlockWithTxs>> {
+        Ok(None)
+    }
+
     async fn test_call(&self) -> u64 {
         self.inner().await.call_response
     }

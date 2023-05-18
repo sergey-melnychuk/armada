@@ -742,8 +742,23 @@ pub mod gen {
 
         impl Felt {
             pub fn try_new(value: &str) -> Result<Self, jsonrpc::Error> {
-                if FELT_REGEX.is_match(value) {
-                    Ok(Self(value.to_string()))
+                // Workaround to enable seamless support of `feeder_gateway.block`,
+                // which does not have "0x" prefix and can have leading zeroes.
+                let value = {
+                    let value = if value.starts_with('0') && !value.starts_with("0x") {
+                        value.chars().skip_while(|c| c == &'0').collect::<String>()
+                    } else {
+                        value.to_string()
+                    };
+                    if !value.starts_with("0x") {
+                        format!("0x{value}")
+                    } else {
+                        value
+                    }
+                };
+
+                if FELT_REGEX.is_match(&value) {
+                    Ok(Self(value))
                 } else {
                     Err(jsonrpc::Error {
                         code: 1001,
