@@ -2,12 +2,14 @@
 
 #[async_trait::async_trait]
 pub trait SeqApi {
-    async fn call(&self) -> u64;
+
+    // TODO: remove this method
+    async fn test_call(&self) -> u64;
 }
 
 #[async_trait::async_trait]
 impl SeqApi for SeqClient {
-    async fn call(&self) -> u64 {
+    async fn test_call(&self) -> u64 {
         42
     }
 }

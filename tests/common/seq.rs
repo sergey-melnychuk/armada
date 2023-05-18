@@ -24,7 +24,8 @@ impl TestSeq {
         self.inner.lock().await
     }
 
-    pub async fn set_call_response(&mut self, x: u64) {
+    // TODO: remove
+    pub async fn set_test_call_response(&mut self, x: u64) {
         let mut inner = self.inner().await;
         inner.call_response = x;
     }
@@ -32,7 +33,7 @@ impl TestSeq {
 
 #[async_trait::async_trait]
 impl SeqApi for TestSeq {
-    async fn call(&self) -> u64 {
+    async fn test_call(&self) -> u64 {
         self.inner().await.call_response
     }
 }

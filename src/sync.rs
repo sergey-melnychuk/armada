@@ -150,7 +150,7 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    let x = ctx.lock().await.eth.call().await;
+    let x = ctx.lock().await.eth.test_call().await;
     Ok(Some(Event::TestEth(x)))
 }
 
@@ -159,6 +159,6 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    let x = ctx.lock().await.seq.call().await;
+    let x = ctx.lock().await.seq.test_call().await;
     Ok(Some(Event::TestSeq(x)))
 }

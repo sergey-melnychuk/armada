@@ -2,12 +2,14 @@
 
 #[async_trait::async_trait]
 pub trait EthApi {
-    async fn call(&self) -> u64;
+
+    // TODO: remove this method
+    async fn test_call(&self) -> u64;
 }
 
 #[async_trait::async_trait]
 impl EthApi for EthClient {
-    async fn call(&self) -> u64 {
+    async fn test_call(&self) -> u64 {
         42
     }
 }
