@@ -30,17 +30,13 @@ impl Storage {
     pub fn blocks(&self) -> &DirRepo<BlockWithTxs> {
         &self.blocks
     }
-
-    pub fn blocks_mut(&mut self) -> &mut DirRepo<BlockWithTxs> {
-        &mut self.blocks
-    }
 }
 
 pub trait Repo<T: Serialize + DeserializeOwned> {
     fn new(base: &Path) -> Self;
     fn get(&self, key: &str) -> anyhow::Result<Option<T>>;
     fn del(&self, key: &str) -> anyhow::Result<Option<T>>;
-    fn put(&mut self, key: &str, val: T) -> anyhow::Result<()>;
+    fn put(&self, key: &str, val: T) -> anyhow::Result<()>;
 }
 
 #[derive(Clone)]
@@ -95,7 +91,7 @@ where
         Ok(Some(val))
     }
 
-    fn put(&mut self, key: &str, val: T) -> anyhow::Result<()> {
+    fn put(&self, key: &str, val: T) -> anyhow::Result<()> {
         let mut path = self.base.clone();
         path.push(format!("{}.json", key));
         let mut file = File::create(&path)?;

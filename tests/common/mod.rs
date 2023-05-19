@@ -56,10 +56,6 @@ impl Test {
         &self.ctx
     }
 
-    pub fn ctx_mut(&mut self) -> &mut Context<TestEth, TestSeq> {
-        &mut self.ctx
-    }
-
     pub async fn rpc<T: Serialize, R: DeserializeOwned>(&self, req: T) -> anyhow::Result<R> {
         let mut res: jsonrpc::Response = self
             .http
