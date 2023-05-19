@@ -59,15 +59,6 @@ where
     pub fn shared(&self) -> Arc<Mutex<Shared>> {
         self.shared.clone()
     }
-
-    // TODO: keep?
-    // pub async fn blocking<R, F>(&self, f: F) -> anyhow::Result<R>
-    // where
-    //     R: Send + 'static,
-    //     F: (FnOnce() -> anyhow::Result<R>) + Send + 'static,
-    // {
-    //     tokio::task::spawn_blocking(move || f()).await?
-    // }
 }
 
 impl<ETH, SEQ> crate::api::gen::Rpc for Context<ETH, SEQ>

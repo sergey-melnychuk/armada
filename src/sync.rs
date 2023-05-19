@@ -5,7 +5,7 @@ use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
 use crate::{
     ctx::Context,
-    eth::EthApi,
+    eth::{self, EthApi},
     seq::SeqApi,
     util::{is_open, Waiter},
 };
@@ -110,12 +110,11 @@ where
 
 #[derive(Debug)]
 pub enum Event {
-    Ethereum(u64, crate::api::gen::Felt),
+    Ethereum(eth::State),
     Block(crate::api::gen::BlockWithTxs),
     Pending(crate::api::gen::PendingBlockWithTxs),
     Latest(crate::api::gen::BlockWithTxs),
     Uptime(u64),
-    TestEth(u64), // TODO: remove
     TestSeq(u64), // TODO: remove
 }
 
@@ -150,8 +149,9 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    let x = ctx.lock().await.eth.test_call().await;
-    Ok(Some(Event::TestEth(x)))
+    let addr = ctx.lock().await.config.ethereum_contract_address.clone();
+    let state = ctx.lock().await.eth.get_state(&addr).await?;
+    Ok(Some(Event::Ethereum(state)))
 }
 
 pub async fn poll_seq<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>

@@ -1,14 +1,16 @@
 use std::time::Duration;
 
-// TODO: configuration
-
 #[derive(Clone, Debug)]
 pub struct Config {
     pub poll_delay: Duration,
+    pub ethereum_contract_address: String,
 }
 
 impl Config {
-    pub fn new(poll_delay: Duration) -> Self {
-        Self { poll_delay }
+    pub fn new(poll_delay: Duration, ethereum_contract_address: String) -> Self {
+        Self {
+            poll_delay,
+            ethereum_contract_address,
+        }
     }
 }

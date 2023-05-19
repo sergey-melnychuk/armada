@@ -10,7 +10,7 @@ pub struct TestEth {
 
 #[derive(Default)]
 struct Inner {
-    call_response: u64,
+    state: Option<armada::eth::State>,
 }
 
 impl TestEth {
@@ -20,20 +20,26 @@ impl TestEth {
         }
     }
 
-    async fn inner(&self) -> MutexGuard<Inner> {
-        self.inner.lock().await
+    pub async fn set_state(&self, state: armada::eth::State) {
+        self.inner().await.state = Some(state);
     }
 
-    // TODO: remove
-    pub async fn set_test_call_response(&mut self, x: u64) {
-        let mut inner = self.inner().await;
-        inner.call_response = x;
+    pub async fn reset_state(&self) {
+        self.inner().await.state = None;
+    }
+
+    async fn inner(&self) -> MutexGuard<Inner> {
+        self.inner.lock().await
     }
 }
 
 #[async_trait::async_trait]
 impl EthApi for TestEth {
-    async fn test_call(&self) -> u64 {
-        self.inner().await.call_response
+    async fn get_state(&self, _address: &str) -> anyhow::Result<armada::eth::State> {
+        if let Some(state) = self.inner().await.state.as_ref() {
+            Ok(state.clone())
+        } else {
+            anyhow::bail!("Failed to fetch ethereum contract state");
+        }
     }
 }

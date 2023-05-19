@@ -1,6 +1,6 @@
 use std::fs;
 
-use armada::api::gen::{BlockWithTxs, InvokeTxn, Txn};
+use armada::api::gen::{BlockWithTxs, Txn};
 
 #[test]
 fn test_parse_original_block() -> anyhow::Result<()> {
