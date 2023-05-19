@@ -4,14 +4,14 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
 
 ### Status
 
-- [ ] Sequencer client
-- [ ] Ethereum client
+- [x] Sequencer client
+- [x] Ethereum client
 - [ ] Sync
-  - [ ] event producers
-    - [ ] "next" block
-    - [ ] pending block
-    - [ ] latest block
-    - [ ] ethereum state
+  - [x] event producers
+    - [x] "next" block
+    - [x] pending block
+    - [x] latest block
+    - [x] ethereum state
   - [ ] event handlers
     - [ ] block
     - [ ] reorg
@@ -22,6 +22,8 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
 - [ ] Storage
   - [x] local
   - [ ] remote (e.g. AWS S3)
+- [ ] Indices
+  - (see the Design Doc for more details)
 - [x] Single shared context
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
 - [ ] JSON-RPC API methods impl:

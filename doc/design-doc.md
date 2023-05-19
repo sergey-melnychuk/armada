@@ -38,6 +38,12 @@ Storage requirements and trade-offs are dictated by the RPC API and respective q
   - source: STATE
   - lookup: address
 
+### Indices
+
+- BLOCK number => BLOCK hash
+- TX hash => (BLOCK hash, TX index)
+- (CONTRACT address, BLOCK _) => (NONCE, [KEY => VAL])
+
 ### Implementation
 
 Each entity has natural primary key, being it a hash, block number or an address. Hash (or address) is typically 32-bytes long, whereas integer number is typically `u64` (8-bytes). With natural primary key and distinct chunks of data (blocks), it makes sense to consider KV-based storage. To start with, the local filesystem fits the use case perfectly (it can be scaled out to any KV-based data store, with AWS S3 being most popular one). The data format is JSON - text-based and very compression-friendly (for an average block, up to 10x compression should be easily achieved).
