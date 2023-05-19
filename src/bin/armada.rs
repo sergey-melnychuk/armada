@@ -11,6 +11,8 @@ use armada::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
     let eth_url = "http://localhost:3000/eth";
     let seq_url = "http://localhost:3000/seq";
     let storage_path = "./target/db";

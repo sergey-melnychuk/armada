@@ -1,6 +1,9 @@
 use serde::de::DeserializeOwned;
 
-use crate::api::gen::{BlockWithTxs, PendingBlockWithTxs};
+use crate::{
+    api::gen::{BlockWithTxs, PendingBlockWithTxs},
+    util::{patch_block, patch_pending_block},
+};
 
 // TODO: sequencer DTO, API
 
@@ -18,19 +21,22 @@ pub trait SeqApi {
 #[async_trait::async_trait]
 impl SeqApi for SeqClient {
     async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<Option<BlockWithTxs>> {
-        self.get_block(&format!("blockNumber={block_number}")).await
+        self.get_block(&format!("blockNumber={block_number}"), patch_block)
+            .await
     }
 
     async fn get_block_by_hash(&self, block_hash: &str) -> anyhow::Result<Option<BlockWithTxs>> {
-        self.get_block(&format!("blockHash={}", block_hash)).await
+        self.get_block(&format!("blockHash={}", block_hash), patch_block)
+            .await
     }
 
     async fn get_latest_block(&self) -> anyhow::Result<Option<BlockWithTxs>> {
-        self.get_block("blockNumber=latest").await
+        self.get_block("blockNumber=latest", patch_block).await
     }
 
     async fn get_pending_block(&self) -> anyhow::Result<Option<PendingBlockWithTxs>> {
-        self.get_block("blockNumber=pending").await
+        self.get_block("blockNumber=pending", patch_pending_block)
+            .await
     }
 }
 
@@ -51,9 +57,15 @@ impl SeqClient {
         }
     }
 
-    async fn get_block<T: DeserializeOwned>(&self, arg: &str) -> anyhow::Result<Option<T>> {
+    async fn get_block<T: DeserializeOwned>(
+        &self,
+        arg: &str,
+        map: fn(serde_json::Value) -> serde_json::Value,
+    ) -> anyhow::Result<Option<T>> {
         let url = format!("{}/feeder_gateway/get_block?{arg}", self.url);
-        Ok(self.http.get(&url).send().await?.json().await.ok())
+        let value: serde_json::Value = self.http.get(&url).send().await?.json().await?;
+        let block = serde_json::from_value(map(value))?;
+        Ok(Some(block))
     }
 }
 
@@ -97,7 +109,6 @@ mod tests {
         }
 
         #[tokio::test]
-        #[ignore] // TODO: (see `tests::json::test_parse_pending_block`)
         async fn test_block_pending() -> anyhow::Result<()> {
             let seq = SeqClient::new(URL);
             let block = seq.get_pending_block().await?.expect("block");

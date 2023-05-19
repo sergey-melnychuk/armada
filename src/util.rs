@@ -54,3 +54,32 @@ pub fn is_open(rx: &mut Receiver<()>) -> bool {
         Err(TryRecvError::Empty) => true,
     }
 }
+
+pub fn patch_pending_block(mut value: serde_json::Value) -> serde_json::Value {
+    let n = value["transactions"]
+        .as_array()
+        .map(|vec| vec.len())
+        .unwrap_or_default();
+    for idx in 0..n {
+        if value["transactions"][idx]["nonce"].as_str().is_none() {
+            value["transactions"][idx]["nonce"] = serde_json::json!("0x0");
+        }
+    }
+    value
+}
+
+pub fn patch_block(mut value: serde_json::Value) -> serde_json::Value {
+    if value.get("block_hash").is_none() {
+        value["block_hash"] = serde_json::json!("0x0");
+    }
+
+    if value.get("state_root").is_none() {
+        value["state_root"] = serde_json::json!("0x0");
+    }
+
+    if value.get("block_number").is_none() {
+        value["block_number"] = serde_json::json!(0);
+    }
+
+    patch_pending_block(value)
+}

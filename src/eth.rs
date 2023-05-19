@@ -125,7 +125,7 @@ mod tests {
 
     // cargo test --package armada --lib -- eth::tests::test_goerli --exact --nocapture
     #[tokio::test]
-    #[ignore]
+    #[ignore = "needs valid INFURA_TOKEN"]
     async fn test_goerli() -> anyhow::Result<()> {
         let token = std::env::var("INFURA_TOKEN")?;
         let url = format!("https://goerli.infura.io/v3/{token}");

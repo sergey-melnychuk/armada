@@ -1,6 +1,9 @@
 use std::fs;
 
-use armada::api::gen::{BlockWithTxs, Txn};
+use armada::{
+    api::gen::{BlockWithTxs, PendingBlockWithTxs},
+    util::{patch_block, patch_pending_block},
+};
 
 #[test]
 fn test_parse_original_block() -> anyhow::Result<()> {
@@ -11,22 +14,19 @@ fn test_parse_original_block() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore]
 fn test_parse_pending_block() -> anyhow::Result<()> {
     let json = fs::read_to_string("./etc/pending.json")?;
-    let block: serde_json::Value = serde_json::from_str(&json)?;
+    let value: serde_json::Value = serde_json::from_str(&json)?;
+    let block: PendingBlockWithTxs = serde_json::from_value(patch_pending_block(value))?;
+    assert!(!block.block_body_with_txs.transactions.is_empty());
+    Ok(())
+}
 
-    // TODO: unfuck this
-    // TXN::INVOKE_TXN::FUNCTION_CALL does not have a "nonce" sometimes in a "pending" block!
-    let txs = block["transactions"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    for (i, tx) in txs.into_iter().enumerate() {
-        println!("\ntx={i}:");
-        let tx: Txn = serde_json::from_value(tx.clone())?;
-        println!("{tx:?}");
-    }
-
+#[test]
+fn test_parse_latest_block() -> anyhow::Result<()> {
+    let json = fs::read_to_string("./etc/latest.json")?;
+    let value: serde_json::Value = serde_json::from_str(&json)?;
+    let block: PendingBlockWithTxs = serde_json::from_value(patch_block(value))?;
+    assert!(!block.block_body_with_txs.transactions.is_empty());
     Ok(())
 }

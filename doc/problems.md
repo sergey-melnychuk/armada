@@ -2,14 +2,29 @@
 
 ---
 
-**Problem:** Some transactions in the `pending` block (specifically `FUNCTION_CALL` ones) sometimes do not have a `nonce` field present (which is a required field). Thus seamless support of both RPC and Gateway for `BlockWithTxs` is problematic for the `pending` block, however for hased/indexed/latest block the JSON schemas differ only by a names of a few fields. (Excluding `state_root`, which in Gateway for some reason returned withoud `"0x"` prefix).
+**Problem:** Block definition between gateway and RPC differ only in a few property names. So `api::gen::BlockWithTxs` needs to be reused.
 
-**Solution:** TODO: For now `pending` block is not supported.
+**Solution:** Align property names between gateway and RPC using `#[serde(alias = "...")]` in `api::gen::*`;
+
+---
+
+**Problem:** Some of `FUNCTION_CALL` transactions returned from the gateway (observed only for ones with `entry_point_selector` field) do not contain `nonce` field. 
+
+**Solution:** Workaround with using `util::patch_*` functions.
 
 ---
 
-**Problem:** ?
+**Problem:** Block `state_root` needs to be a Felt, but does not have `"0x"` prefix.
 
-**Solution:** !
+**Solution:** Workaround in `api::gen::felt::Felt::try_new`.
 
 ---
+
+<!---
+
+**Problem:** 
+
+**Solution:** 
+
+---
+-->

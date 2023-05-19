@@ -1,6 +1,6 @@
 {
   "jsonrpc": "2.0",
-  "id": "getblock.io",
+  "id": 42,
   "result": {
     "baseFeePerGas": "0x987848c4a",
     "difficulty": "0x0",
