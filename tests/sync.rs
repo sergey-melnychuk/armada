@@ -1,6 +1,10 @@
 use std::time::Duration;
 
-use armada::{api::gen::NumAsHex, sync::{self, Event, Source}};
+use armada::{
+    api::gen::{BlockWithTxs, NumAsHex},
+    sync::{self, Event, Source},
+};
+use serde::de::DeserializeOwned;
 
 mod common;
 
@@ -8,7 +12,10 @@ mod common;
 async fn test_sync_events() -> anyhow::Result<()> {
     let mut test = common::Test::new().await;
 
-    test.ctx_mut().seq.set_test_call_response(101).await;
+    let latest: BlockWithTxs = get_file("etc/805543-block.json").await?;
+    let latest_number = *latest.block_header.block_number.as_ref() as u64;
+    let latest_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref())?;
+    test.ctx_mut().seq.set_latest(latest).await;
 
     test.ctx_mut()
         .eth
@@ -26,11 +33,32 @@ async fn test_sync_events() -> anyhow::Result<()> {
     src.add("eth", sync::poll_eth, d * 2).await;
     let mut src = src.run();
 
-    let one = src.get().await.expect("one");
-    assert!(matches!(one, Event::TestSeq(101)), "{:?}", one);
+    match src.get().await.expect("one") {
+        Event::Head(number, hash) => {
+            assert_eq!(number, latest_number);
+            assert_eq!(hash.as_ref(), latest_hash.as_ref());
+        }
+        other => anyhow::bail!("Unexpected event: {other:?}"),
+    }
 
-    let two = src.get().await.expect("two");
-    assert!(matches!(two, Event::Ethereum(_)), "{:?}", two);
+    match src.get().await.expect("two") {
+        Event::Ethereum(armada::eth::State {
+            state_root,
+            state_block_hash,
+            state_block_number,
+        }) => {
+            assert_eq!(state_block_number, 1);
+            assert_eq!(state_root.as_ref(), "0x2");
+            assert_eq!(state_block_hash.as_ref(), "0x3");
+        }
+        other => anyhow::bail!("Unexpected event: {other:?}"),
+    }
 
     Ok(())
+}
+
+async fn get_file<T: DeserializeOwned>(path: &str) -> anyhow::Result<T> {
+    let json = tokio::fs::read_to_string(path).await?;
+    let val: T = serde_json::from_str(&json)?;
+    Ok(val)
 }

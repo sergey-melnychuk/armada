@@ -13,9 +13,6 @@ pub trait SeqApi {
 
     // TODO: get_state_update
     // TODO: get_contract
-
-    // TODO: remove this method
-    async fn test_call(&self) -> u64;
 }
 
 #[async_trait::async_trait]
@@ -34,10 +31,6 @@ impl SeqApi for SeqClient {
 
     async fn get_pending_block(&self) -> anyhow::Result<Option<PendingBlockWithTxs>> {
         self.get_block("blockNumber=pending").await
-    }
-
-    async fn test_call(&self) -> u64 {
-        42
     }
 }
 
@@ -66,7 +59,12 @@ impl SeqClient {
 
 #[cfg(test)]
 mod tests {
-    mod testnet {
+
+    // TODO: mainnet: use or remove?
+    // const SEQ_URL: &str = "https://alpha-mainnet.starknet.io";
+    // const ETH_URL: &str = "https://eth.llamarpc.com";
+
+    mod goerli {
         use super::super::*;
 
         const URL: &str = "https://alpha4.starknet.io";

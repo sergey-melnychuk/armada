@@ -16,9 +16,6 @@ use self::seq::TestSeq;
 pub mod eth;
 pub mod seq;
 
-// const ETH_URL: &str = "https://eth.llamarpc.com";
-// const SEQ_URL: &str = "https://alpha-mainnet.starknet.io";
-
 pub struct Test {
     dir: Option<TempDir>,
     url: String,

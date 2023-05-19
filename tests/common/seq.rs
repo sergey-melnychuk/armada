@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use armada::seq::SeqApi;
+use armada::{api::gen::BlockWithTxs, seq::SeqApi};
 use tokio::sync::{Mutex, MutexGuard};
 
 #[derive(Clone)]
@@ -10,7 +10,7 @@ pub struct TestSeq {
 
 #[derive(Default)]
 struct Inner {
-    call_response: u64,
+    latest: Option<BlockWithTxs>,
 }
 
 impl TestSeq {
@@ -20,14 +20,16 @@ impl TestSeq {
         }
     }
 
-    async fn inner(&self) -> MutexGuard<Inner> {
-        self.inner.lock().await
+    pub async fn set_latest(&self, latest: BlockWithTxs) {
+        self.inner().await.latest = Some(latest);
     }
 
-    // TODO: remove
-    pub async fn set_test_call_response(&mut self, x: u64) {
-        let mut inner = self.inner().await;
-        inner.call_response = x;
+    pub async fn reset_latest(&self) {
+        self.inner().await.latest = None;
+    }
+
+    async fn inner(&self) -> MutexGuard<Inner> {
+        self.inner.lock().await
     }
 }
 
@@ -48,16 +50,12 @@ impl SeqApi for TestSeq {
     }
 
     async fn get_latest_block(&self) -> anyhow::Result<Option<armada::api::gen::BlockWithTxs>> {
-        Ok(None)
+        Ok(self.inner().await.latest.clone())
     }
 
     async fn get_pending_block(
         &self,
     ) -> anyhow::Result<Option<armada::api::gen::PendingBlockWithTxs>> {
         Ok(None)
-    }
-
-    async fn test_call(&self) -> u64 {
-        self.inner().await.call_response
     }
 }

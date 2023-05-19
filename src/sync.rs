@@ -4,6 +4,7 @@ use futures::Future;
 use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
 use crate::{
+    api::gen::NumAsHex,
     ctx::Context,
     eth::{self, EthApi},
     seq::SeqApi,
@@ -111,11 +112,11 @@ where
 #[derive(Debug)]
 pub enum Event {
     Ethereum(eth::State),
+    Head(u64, NumAsHex),
     Block(crate::api::gen::BlockWithTxs),
     Pending(crate::api::gen::PendingBlockWithTxs),
     Latest(crate::api::gen::BlockWithTxs),
     Uptime(u64),
-    TestSeq(u64), // TODO: remove
 }
 
 pub async fn handler<ETH, SEQ>(_ctx: Arc<Mutex<Context<ETH, SEQ>>>, event: Event)
@@ -159,6 +160,19 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    let x = ctx.lock().await.seq.test_call().await;
-    Ok(Some(Event::TestSeq(x)))
+    let latest = match ctx.lock().await.seq.get_latest_block().await? {
+        Some(block) => block,
+        None => return Ok(None),
+    };
+
+    let block_number = *latest.block_header.block_number.as_ref() as u64;
+    let block_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref()).unwrap();
+
+    tracing::info!(
+        number = block_number,
+        hash = block_hash.as_ref(),
+        "Latest block"
+    );
+
+    Ok(Some(Event::Head(block_number, block_hash)))
 }
