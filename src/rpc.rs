@@ -20,29 +20,54 @@ enum Response {
     Batch(Vec<jsonrpc::Response>),
 }
 
+struct RpcError(anyhow::Error);
+
+impl IntoResponse for RpcError {
+    fn into_response(self) -> axum::response::Response {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("RPC error: {}", self.0),
+        )
+            .into_response()
+    }
+}
+
+impl<E> From<E> for RpcError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
+}
+
 async fn handle_request<ETH, SEQ>(
     State(state): State<Context<ETH, SEQ>>,
     Json(req): Json<Request>,
-) -> impl IntoResponse
+) -> Result<impl IntoResponse, RpcError>
 where
-    ETH: EthApi + Send + Sync + 'static,
-    SEQ: SeqApi + Send + Sync + 'static,
+    ETH: EthApi + Clone + Send + Sync + 'static,
+    SEQ: SeqApi + Clone + Send + Sync + 'static,
 {
     match req {
         Request::Single(req) => {
             log::info!("method: {}", req.method);
-            let res = gen::handle(&state, &req);
-            Json(Response::Single(res))
+            let res = tokio::task::spawn_blocking(move || gen::handle(&state, &req))
+                .await
+                .map_err(|e| anyhow::anyhow!(e))?;
+            Ok(Json(Response::Single(res)))
         }
-        Request::Batch(req) => {
-            let res = req
-                .into_iter()
-                .map(|req| {
-                    log::info!("method: {}", req.method);
-                    gen::handle(&state, &req)
-                })
-                .collect::<Vec<_>>();
-            Json(Response::Batch(res))
+        Request::Batch(reqs) => {
+            let mut ret = Vec::with_capacity(reqs.len());
+            for req in reqs {
+                log::info!("method: {}", req.method);
+                let state = state.clone();
+                let res = tokio::task::spawn_blocking(move || gen::handle(&state, &req))
+                    .await
+                    .map_err(|e| anyhow::anyhow!(e))?;
+                ret.push(res)
+            }
+            Ok(Json(Response::Batch(ret)))
         }
     }
 }
