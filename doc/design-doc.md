@@ -12,6 +12,10 @@ TODO: Describe target use-cases
 
 Storage requirements and trade-offs are dictated by the RPC API and respective query patterns. The nature of blockchain data is discrete (comes in blocks), immutable (reorgs are still possible), effectively time-series based, and append-only. Data is never removed at a meaningful scale (amount of data overwritten on reorg could be neglected compared to the full ledger). Append-only nature allows storing most of the data "at rest" in a highly-available setup (likely sharded/replicated), while keeping in mind constant growth of a full dataset. At some point, storing all the data on each node locally (in the embedded database) would not be convenient, so either sharding + replication strategy is necessary, or it can be abstracted away using existing storage solutions (AWS S3). As long as data is immutable and append only, it makes sense to cache "hot" chunks locally to improve latency distribution.
 
+### Security
+
+The block binary data stored on block-per-file basics allows "source" node to sign the binary (likely a gzipped JSON) with node's key. This way the block data can be verified by any other node that knows the signer's public key. The un-trusted chunks (e.g. with invalid signatures) can be easily detected and "fixed" by separate reconciliation process or by node on per-request basics.
+
 ### Entities
 
 - BLOCK
@@ -42,7 +46,8 @@ Storage requirements and trade-offs are dictated by the RPC API and respective q
 
 - BLOCK number => BLOCK hash
 - TX hash => (BLOCK hash, TX index)
-- (CONTRACT address, BLOCK _) => (NONCE, [KEY => VAL])
+- (CONTRACT address, BLOCK number) => NONCE
+- STORAGE: (CONTRACT address, KEY, BLOCK number) => VALUE
 
 ### Implementation
 
@@ -52,11 +57,28 @@ Each entity has natural primary key, being it a hash, block number or an address
 
 TODO: Estimate necessary capacity for 1M blocks (data storage + index storage)
 
+## SYNCING
+
+Even though intuitive way to sync blocks is to start from genesis and and continue until the head block is reached, I believe it makes way more sense to fetch L2 head (or L1 head) and start syncing backwards. This way the most recent nonces and storage data are available as soon as they are reached, and historycal data is updated along the way. It makes sense to assume that most queries (say, 90%+) fetch the most recent data, and historical queries ratio is significantly lower.
+
+If syncing needs to be started from some intermediate state, it can actually proceed from both ends simultaniously: (1) pull current head and continue pulling backwards until the matching saved block is found (NOTE: this way any network reorg is handled automatically, without disrupting the syncing flow!); or (2) keep track of the "lowest" sycned block, and continue from there until genesis block is reached.
+
+```
+  GENESIS               LO                    HI                    HEAD
+ /                     /                     /                     /
+0->->->---------------*---------------------*--------------->->->-H...
+|                     |                     |                     |
+|< < <             <<<|                     |< < <             <<<|
+|                     |                     |                     |
+|                     |#####################|                     |
+        syncing        <---synced blocks--->        syncing
+```
+
 ## NETWORK
 
 ### Distributed Setup
 
-TODO: Describe how multiple nodes can work together (master-slave, etc)
+TODO: Describe how multiple nodes can work together (master-slave, hash-ring, etc)
 
 ### P2P
 
@@ -69,4 +91,5 @@ TODO: Describe how peer-to-peer data propagation might work.
 ```
 curl "https://alpha4.starknet.io/feeder_gateway/get_state_update?blockNumber=805543" | jq > etc/805543-state-update.json
 curl "https://alpha4.starknet.io/feeder_gateway/get_block?blockNumber=805543" | jq > etc/805543.json
+curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com | jq > etc/ethereum-latest.json
 ```
