@@ -12,6 +12,10 @@ TODO: Describe target use-cases
 
 Storage requirements and trade-offs are dictated by the RPC API and respective query patterns. The nature of blockchain data is discrete (comes in blocks), immutable (reorgs are still possible), effectively time-series based, and append-only. Data is never removed at a meaningful scale (amount of data overwritten on reorg could be neglected compared to the full ledger). Append-only nature allows storing most of the data "at rest" in a highly-available setup (likely sharded/replicated), while keeping in mind constant growth of a full dataset. At some point, storing all the data on each node locally (in the embedded database) would not be convenient, so either sharding + replication strategy is necessary, or it can be abstracted away using existing storage solutions (AWS S3). As long as data is immutable and append only, it makes sense to cache "hot" chunks locally to improve latency distribution.
 
+### Metadata
+
+It absolutely makes sense to include metadata into the storage enginge (if running locally: the directory on the filesystem) containing details about specific chain the data belongs to (mainnet, testnet, integration, etc) - it can be considered as a "static metadata" (as it is not expected to change during the lifetime of the data). The "dynamic metadata" such as synced blocks range, current L1/L2 head block and maybe some configuration properties is a good thing to have as well, and it might come in standalone key-value store (in practice a specific file).
+
 ### Implementation
 
 Each entity has natural primary key, being it a hash, block number or an address. Hash (or address) is typically 32-bytes long, whereas integer number is typically `u64` (8-bytes). With natural primary key and distinct chunks of data (blocks), it makes sense to consider KV-based storage. To start with, the local filesystem fits the use case perfectly (it can be scaled out to any KV-based data store, with AWS S3 being most popular one). The data format is JSON - text-based and very compression-friendly (for an average block, up to 10x compression should be easily achieved).
