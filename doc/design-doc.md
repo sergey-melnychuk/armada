@@ -1,5 +1,8 @@
 # [DRAFT] Design Doc: Armada - Starknet full node
 
+* [Problems](/doc/problems.md)
+* [Ideas](/doc/ideas.md)
+
 ## INTRO
 
 The goal if this document is to describe architecture and implementation of full starknet node as well as trade-offs analized and decisions made along the way, while keeping the [incidental complexity](https://dev.to/alexbunardzic/software-complexity-essential-accidental-and-incidental-3i4d) overhead as low as possible, interfaces clean with [separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns), high cohesion and loose coupling between submodules (ideally making implementations replacebe in a seamless manner), and test coverage simple yet reasonable.

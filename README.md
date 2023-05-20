@@ -2,6 +2,8 @@
 
 WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
+[Design Doc](/doc/design-doc.md)
+
 ### Status
 
 - [x] Sequencer client
