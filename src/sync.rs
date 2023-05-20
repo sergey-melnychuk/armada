@@ -161,10 +161,7 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    let latest = match ctx.lock().await.seq.get_latest_block().await? {
-        Some(block) => block,
-        None => return Ok(None),
-    };
+    let latest = ctx.lock().await.seq.get_latest_block().await?;
 
     let block_number = *latest.block_header.block_number.as_ref() as u64;
     let block_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref()).unwrap();
