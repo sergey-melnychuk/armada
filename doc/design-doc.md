@@ -218,7 +218,16 @@ TODO: Describe how peer-to-peer data propagation might work.
 #### Example data
 
 ```
+curl "https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x6f9ca7fb180e21856fe724436c8ac93059732a7d100533242fd6e380cf034f9" | jq > etc/tx.json
+
+curl "https://alpha4.starknet.io/feeder_gateway/get_class_by_hash?classHash=0x3131fa018d520a037686ce3efddeab8f28895662f019ca3ca18a626650f7d1e" | jq > etc/class.json
+
 curl "https://alpha4.starknet.io/feeder_gateway/get_state_update?blockNumber=805543" | jq > etc/805543-state-update.json
+
 curl "https://alpha4.starknet.io/feeder_gateway/get_block?blockNumber=805543" | jq > etc/805543.json
+
 curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com | jq > etc/ethereum-latest.json
+
+$ curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses
+{"GpsStatementVerifier": "0x8f97970aC5a9aa8D130d35146F5b59c4aef57963", "Starknet": "0xde29d060D45901Fb19ED6C6e959EB22d8626708e"}
 ```
