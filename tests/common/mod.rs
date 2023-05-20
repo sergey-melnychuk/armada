@@ -33,7 +33,7 @@ impl Test {
         let seq = TestSeq::new();
 
         let shared = Shared::default();
-        let db = Storage::new(dir.path());
+        let db = Storage::new(dir.path()).await;
 
         let config = Config::new(Duration::from_secs(1), "0x0".to_string());
 

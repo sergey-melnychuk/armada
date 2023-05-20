@@ -57,7 +57,7 @@ where
         self.shared.clone()
     }
 
-    fn get_block_number(
+    async fn get_block_number(
         &self,
         block_id: BlockId,
     ) -> std::result::Result<u64, iamgroot::jsonrpc::Error> {
@@ -69,6 +69,7 @@ where
                     .db
                     .blocks
                     .get(key)
+                    .await
                     .map_err(|e| {
                         iamgroot::jsonrpc::Error::new(
                             -65000,
@@ -90,16 +91,17 @@ where
     }
 }
 
+#[async_trait::async_trait]
 impl<ETH, SEQ> crate::api::gen::Rpc for Context<ETH, SEQ>
 where
     ETH: EthApi,
     SEQ: SeqApi,
 {
-    fn getBlockWithTxHashes(
+    async fn getBlockWithTxHashes(
         &self,
         block_id: BlockId,
     ) -> std::result::Result<GetBlockWithTxHashesResult, iamgroot::jsonrpc::Error> {
-        let block = match self.getBlockWithTxs(block_id)? {
+        let block = match self.getBlockWithTxs(block_id).await? {
             GetBlockWithTxsResult::BlockWithTxs(block) => block,
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
@@ -122,7 +124,7 @@ where
         ))
     }
 
-    fn getBlockWithTxs(
+    async fn getBlockWithTxs(
         &self,
         block_id: BlockId,
     ) -> std::result::Result<GetBlockWithTxsResult, iamgroot::jsonrpc::Error> {
@@ -138,6 +140,7 @@ where
             .db
             .blocks
             .get(key)
+            .await
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(
                     -65000,
@@ -150,7 +153,7 @@ where
         Ok(GetBlockWithTxsResult::BlockWithTxs(block))
     }
 
-    fn getStateUpdate(
+    async fn getStateUpdate(
         &self,
         block_id: BlockId,
     ) -> std::result::Result<GetStateUpdateResult, iamgroot::jsonrpc::Error> {
@@ -166,6 +169,7 @@ where
             .db
             .states
             .get(key)
+            .await
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(
                     -65000,
@@ -178,7 +182,7 @@ where
         Ok(GetStateUpdateResult::StateUpdate(state_update))
     }
 
-    fn getStorageAt(
+    async fn getStorageAt(
         &self,
         contract_address: Address,
         key: StorageKey,
@@ -192,6 +196,7 @@ where
                     .db
                     .blocks
                     .get(key)
+                    .await
                     .map_err(|e| {
                         iamgroot::jsonrpc::Error::new(
                             -65000,
@@ -217,8 +222,11 @@ where
         let item = AddressWithKeyAndNumber::from(address, storage_key, number);
 
         let item = if block_number == u64::MAX {
-            RUNTIME
-                .block_on(async { self.db.states_index.read().await.below(&item) })
+            self.db
+                .states_index
+                .read()
+                .await
+                .below(&item)
                 .ok()
                 .flatten()
                 .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?
@@ -255,7 +263,7 @@ where
         Ok(felt)
     }
 
-    fn getTransactionByHash(
+    async fn getTransactionByHash(
         &self,
         transaction_hash: TxnHash,
     ) -> std::result::Result<Txn, iamgroot::jsonrpc::Error> {
@@ -282,9 +290,10 @@ where
             },
             Index::try_new(block_and_number.index().into_u64() as i64)?,
         )
+        .await
     }
 
-    fn getTransactionByBlockIdAndIndex(
+    async fn getTransactionByBlockIdAndIndex(
         &self,
         block_id: BlockId,
         index: Index,
@@ -303,6 +312,7 @@ where
             .db
             .blocks
             .get(key)
+            .await
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(
                     -65000,
@@ -318,7 +328,7 @@ where
         }
     }
 
-    fn getTransactionReceipt(
+    async fn getTransactionReceipt(
         &self,
         transaction_hash: TxnHash,
     ) -> std::result::Result<TxnReceipt, iamgroot::jsonrpc::Error> {
@@ -346,6 +356,7 @@ where
             .db
             .blocks
             .get(key)
+            .await
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(
                     -65000,
@@ -358,7 +369,7 @@ where
         Ok(txn_receipt)
     }
 
-    fn getClass(
+    async fn getClass(
         &self,
         _block_id: BlockId,
         class_hash: Felt,
@@ -369,6 +380,7 @@ where
             .db
             .classes
             .get(class_hash.as_ref())
+            .await
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(
                     -65000,
@@ -380,12 +392,12 @@ where
         Ok(map_class(class))
     }
 
-    fn getClassHashAt(
+    async fn getClassHashAt(
         &self,
         block_id: BlockId,
         contract_address: Address,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        let block_number = self.get_block_number(block_id)?;
+        let block_number = self.get_block_number(block_id).await?;
 
         let address = U256::from_hex(contract_address.0.as_ref()).unwrap();
         let number = U64::from_u64(block_number);
@@ -399,13 +411,15 @@ where
         Ok(felt)
     }
 
-    fn getClassAt(
+    async fn getClassAt(
         &self,
         block_id: BlockId,
         contract_address: Address,
     ) -> std::result::Result<GetClassAtResult, iamgroot::jsonrpc::Error> {
-        let class_hash = self.getClassHashAt(block_id.clone(), contract_address)?;
-        let class = self.getClass(block_id, class_hash)?;
+        let class_hash = self
+            .getClassHashAt(block_id.clone(), contract_address)
+            .await?;
+        let class = self.getClass(block_id, class_hash).await?;
         Ok(match class {
             GetClassResult::ContractClass(contract_class) => {
                 GetClassAtResult::ContractClass(contract_class)
@@ -416,11 +430,11 @@ where
         })
     }
 
-    fn getBlockTransactionCount(
+    async fn getBlockTransactionCount(
         &self,
         block_id: BlockId,
     ) -> std::result::Result<GetBlockTransactionCountResult, iamgroot::jsonrpc::Error> {
-        let block = match self.getBlockWithTxs(block_id)? {
+        let block = match self.getBlockWithTxs(block_id).await? {
             GetBlockWithTxsResult::BlockWithTxs(block) => block,
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
@@ -432,7 +446,7 @@ where
         GetBlockTransactionCountResult::try_new(n)
     }
 
-    fn call(
+    async fn call(
         &self,
         _request: FunctionCall,
         _block_id: BlockId,
@@ -440,7 +454,7 @@ where
         not_implemented()
     }
 
-    fn estimateFee(
+    async fn estimateFee(
         &self,
         _request: Request,
         _block_id: BlockId,
@@ -448,7 +462,7 @@ where
         not_implemented()
     }
 
-    fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
+    async fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
         let num = RUNTIME
             .block_on(async {
                 let idx = self.db.blocks_index.read().await;
@@ -466,7 +480,7 @@ where
         BlockNumber::try_new(num.into_u64() as i64)
     }
 
-    fn blockHashAndNumber(
+    async fn blockHashAndNumber(
         &self,
     ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error> {
         let (num, hash) = RUNTIME
@@ -494,11 +508,11 @@ where
         })
     }
 
-    fn chainId(&self) -> std::result::Result<ChainId, iamgroot::jsonrpc::Error> {
+    async fn chainId(&self) -> std::result::Result<ChainId, iamgroot::jsonrpc::Error> {
         ChainId::try_new("0xCAFEBABE") // TODO: make it right
     }
 
-    fn pendingTransactions(
+    async fn pendingTransactions(
         &self,
     ) -> std::result::Result<PendingTransactionsResult, iamgroot::jsonrpc::Error> {
         Err(iamgroot::jsonrpc::Error::new(
@@ -507,7 +521,7 @@ where
         ))
     }
 
-    fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
+    async fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
         let (lo, lo_hash, hi, hi_hash) = RUNTIME
             .block_on(async {
                 let idx = self.db.blocks_index.read().await;
@@ -546,7 +560,7 @@ where
         }))
     }
 
-    fn getEvents(
+    async fn getEvents(
         &self,
         filter: Filter,
     ) -> std::result::Result<EventsChunk, iamgroot::jsonrpc::Error> {
@@ -560,13 +574,13 @@ where
             ))?;
 
         let lo = if let Some(from_block) = filter.event_filter.from_block {
-            self.get_block_number(from_block)?
+            self.get_block_number(from_block).await?
         } else {
             0
         };
 
         let hi = if let Some(to_block) = filter.event_filter.to_block {
-            self.get_block_number(to_block)?
+            self.get_block_number(to_block).await?
         } else {
             u64::MAX
         };
@@ -603,7 +617,7 @@ where
                 let key = AddressWithKeyAndNumber::from(addr.clone(), k.clone(), number.clone());
 
                 let found = RUNTIME.block_on(async {
-                    let block = self
+                    let hash = self
                         .db
                         .blocks_index
                         .read()
@@ -614,8 +628,13 @@ where
                                 -1,
                                 format!("Failed to fetch block: {e:?}"),
                             )
-                        })?
-                        .and_then(|hash| self.db.blocks.get(&hash.into_str()).ok().flatten());
+                        })?;
+
+                    let block = if let Some(hash) = hash.as_ref() {
+                        self.db.blocks.get(&hash.into_str()).await.ok().flatten()
+                    } else {
+                        None
+                    };
 
                     let tx = self
                         .db
@@ -670,7 +689,7 @@ where
         })
     }
 
-    fn getNonce(
+    async fn getNonce(
         &self,
         block_id: BlockId,
         contract_address: Address,
@@ -683,6 +702,7 @@ where
                     .db
                     .blocks
                     .get(key)
+                    .await
                     .map_err(|e| {
                         iamgroot::jsonrpc::Error::new(
                             -65000,
@@ -746,35 +766,35 @@ where
         Ok(felt)
     }
 
-    fn addInvokeTransaction(
+    async fn addInvokeTransaction(
         &self,
         _invoke_transaction: BroadcastedInvokeTxn,
     ) -> std::result::Result<AddInvokeTransactionResult, iamgroot::jsonrpc::Error> {
         not_implemented()
     }
 
-    fn addDeclareTransaction(
+    async fn addDeclareTransaction(
         &self,
         _declare_transaction: BroadcastedDeclareTxn,
     ) -> std::result::Result<AddDeclareTransactionResult, iamgroot::jsonrpc::Error> {
         not_implemented()
     }
 
-    fn addDeployAccountTransaction(
+    async fn addDeployAccountTransaction(
         &self,
         _deploy_account_transaction: BroadcastedDeployAccountTxn,
     ) -> std::result::Result<AddDeployAccountTransactionResult, iamgroot::jsonrpc::Error> {
         not_implemented()
     }
 
-    fn traceTransaction(
+    async fn traceTransaction(
         &self,
         _transaction_hash: TxnHash,
     ) -> std::result::Result<TransactionTrace, iamgroot::jsonrpc::Error> {
         not_implemented()
     }
 
-    fn simulateTransaction(
+    async fn simulateTransaction(
         &self,
         _block_id: BlockId,
         _transaction: Transaction,
@@ -784,7 +804,7 @@ where
         not_implemented()
     }
 
-    fn traceBlockTransactions(
+    async fn traceBlockTransactions(
         &self,
         _block_hash: BlockHash,
     ) -> std::result::Result<TraceBlockTransactionsTraces, iamgroot::jsonrpc::Error> {

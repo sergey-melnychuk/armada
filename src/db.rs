@@ -1,6 +1,4 @@
 use std::{
-    fs::{self, File},
-    io::{Read, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
     sync::Arc,
@@ -8,6 +6,10 @@ use std::{
 
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::RwLock;
+use tokio::{
+    fs::{self, File},
+    io::{AsyncReadExt, AsyncWriteExt},
+};
 use yakvdb::typed::{Store, DB};
 
 use crate::{
@@ -127,14 +129,14 @@ impl<'a> From<&'a [u8]> for AddressWithKeyAndNumber {
 }
 
 impl Storage {
-    pub fn new<P: AsRef<Path>>(base: P) -> Self {
-        fs::create_dir_all(base.as_ref()).ok();
+    pub async fn new<P: AsRef<Path>>(base: P) -> Self {
+        fs::create_dir_all(base.as_ref()).await.ok();
 
         let base = base.as_ref();
 
         let mut path = base.to_owned();
         path.push("block");
-        let blocks = DirRepo::new(&path);
+        let blocks = DirRepo::new(&path).await;
 
         let mut path = base.to_owned();
         path.push("block");
@@ -150,7 +152,7 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("tx");
-        fs::create_dir_all(&path).ok();
+        fs::create_dir_all(&path).await.ok();
 
         let mut path = base.to_owned();
         path.push("tx");
@@ -160,7 +162,7 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("state");
-        let states = DirRepo::new(&path);
+        let states = DirRepo::new(&path).await;
 
         let mut path = base.to_owned();
         path.push("state");
@@ -176,7 +178,7 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("class");
-        let classes = DirRepo::new(&path);
+        let classes = DirRepo::new(&path).await;
 
         let mut path = base.to_owned();
         path.push("class");
@@ -198,12 +200,13 @@ impl Storage {
     }
 }
 
+#[async_trait::async_trait]
 pub trait Repo<T: Serialize + DeserializeOwned> {
-    fn new(base: &Path) -> Self;
-    fn has(&self, key: &str) -> anyhow::Result<bool>;
-    fn get(&self, key: &str) -> anyhow::Result<Option<T>>;
-    fn del(&self, key: &str) -> anyhow::Result<Option<T>>;
-    fn put(&self, key: &str, val: T) -> anyhow::Result<()>;
+    async fn new(base: &Path) -> Self;
+    async fn has(&self, key: &str) -> anyhow::Result<bool>;
+    async fn get(&self, key: &str) -> anyhow::Result<Option<T>>;
+    async fn del(&self, key: &str) -> anyhow::Result<Option<T>>;
+    async fn put(&self, key: &str, val: T) -> anyhow::Result<()>;
 }
 
 #[derive(Clone)]
@@ -214,7 +217,7 @@ pub struct DirRepo<T: Serialize + DeserializeOwned> {
 
 impl<T> DirRepo<T>
 where
-    T: Serialize + DeserializeOwned,
+    T: Serialize + DeserializeOwned + Sync,
 {
     fn path(&self, key: &str) -> PathBuf {
         let mut path = self.base.clone();
@@ -222,26 +225,27 @@ where
         path
     }
 
-    fn file(&self, key: &str) -> anyhow::Result<Option<String>> {
+    async fn file(&self, key: &str) -> anyhow::Result<Option<String>> {
         let path = self.path(key);
         if !path.exists() {
             return Ok(None);
         }
 
-        let mut file = File::open(&path)?;
+        let mut file = File::open(&path).await?;
         let mut bytes = Vec::with_capacity(1024);
-        let _ = file.read_to_end(&mut bytes)?;
+        let _ = file.read_to_end(&mut bytes).await?;
         let json = gzip::ungzip(&bytes)?;
         Ok(Some(json))
     }
 }
 
+#[async_trait::async_trait]
 impl<T> Repo<T> for DirRepo<T>
 where
-    T: Serialize + DeserializeOwned,
+    T: Serialize + DeserializeOwned + Sync + Send,
 {
-    fn new(base: &Path) -> Self {
-        fs::create_dir_all(base).ok();
+    async fn new(base: &Path) -> Self {
+        fs::create_dir_all(base).await.ok();
 
         Self {
             base: base.to_owned(),
@@ -249,12 +253,12 @@ where
         }
     }
 
-    fn has(&self, key: &str) -> anyhow::Result<bool> {
+    async fn has(&self, key: &str) -> anyhow::Result<bool> {
         Ok(self.path(key).exists())
     }
 
-    fn get(&self, key: &str) -> anyhow::Result<Option<T>> {
-        let json = self.file(key)?;
+    async fn get(&self, key: &str) -> anyhow::Result<Option<T>> {
+        let json = self.file(key).await?;
         if let Some(json) = json {
             let val: T = serde_json::from_str(&json)?;
             return Ok(Some(val));
@@ -262,20 +266,20 @@ where
         Ok(None)
     }
 
-    fn del(&self, key: &str) -> anyhow::Result<Option<T>> {
-        let opt = self.get(key)?;
+    async fn del(&self, key: &str) -> anyhow::Result<Option<T>> {
+        let opt = self.get(key).await?;
         if opt.is_some() {
-            fs::remove_file(self.path(key))?;
+            fs::remove_file(self.path(key)).await?;
         }
         Ok(opt)
     }
 
-    fn put(&self, key: &str, val: T) -> anyhow::Result<()> {
+    async fn put(&self, key: &str, val: T) -> anyhow::Result<()> {
         let path = self.path(key);
-        let mut file = File::create(path)?;
+        let mut file = File::create(path).await?;
         let json = serde_json::to_string(&val)?;
         let bytes = gzip::gzip(&json)?;
-        file.write_all(&bytes)?;
+        file.write_all(&bytes).await?;
         Ok(())
     }
 }

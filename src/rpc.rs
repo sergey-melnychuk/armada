@@ -57,9 +57,7 @@ where
     match req {
         Request::Single(req) => {
             log::info!("method: {}", req.method);
-            let res = tokio::task::spawn_blocking(move || gen::handle(&state, &req))
-                .await
-                .map_err(|e| anyhow::anyhow!(e))?;
+            let res = gen::handle(&state, &req).await;
             Ok(Json(Response::Single(res)))
         }
         Request::Batch(reqs) => {
@@ -67,9 +65,7 @@ where
             for req in reqs {
                 log::info!("method: {}", req.method);
                 let state = state.clone();
-                let res = tokio::task::spawn_blocking(move || gen::handle(&state, &req))
-                    .await
-                    .map_err(|e| anyhow::anyhow!(e))?;
+                let res = gen::handle(&state, &req).await;
                 ret.push(res)
             }
             Ok(Json(Response::Batch(ret)))

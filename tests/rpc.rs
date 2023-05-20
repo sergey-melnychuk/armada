@@ -18,7 +18,7 @@ mod get_block_with_tx_hashes {
         let hash = block.block_header.block_hash.0.as_ref().clone();
 
         let test = common::Test::new().await;
-        test.ctx.db.blocks.put(&hash, block)?;
+        test.ctx.db.blocks.put(&hash, block).await?;
 
         let res: GetBlockWithTxHashesResult = test
             .rpc(json!({
@@ -54,7 +54,7 @@ mod get_block_with_txs {
         let hash = block.block_header.block_hash.0.as_ref().clone();
 
         let test = common::Test::new().await;
-        test.ctx.db.blocks.put(&hash, block)?;
+        test.ctx.db.blocks.put(&hash, block).await?;
 
         let res: GetBlockWithTxsResult = test
             .rpc(json!({

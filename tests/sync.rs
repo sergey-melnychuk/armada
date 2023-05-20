@@ -20,7 +20,7 @@ async fn test_sync_events() -> anyhow::Result<()> {
 
     *test.ctx.seq.latest().await = Some(latest.clone());
 
-    test.ctx.db.blocks.put(latest_hash.as_ref(), latest)?;
+    test.ctx.db.blocks.put(latest_hash.as_ref(), latest).await?;
 
     *test.ctx.eth.state().await = Some(armada::eth::State {
         state_block_number: 1,

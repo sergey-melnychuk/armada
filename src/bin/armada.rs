@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
     let eth = EthClient::new(eth_url);
     let seq = SeqClient::new(seq_url);
-    let db = Storage::new(storage_path);
+    let db = Storage::new(storage_path).await;
     let shared = Shared::default();
 
     let ctx = Context::new(eth, seq, shared, db, config);
@@ -56,7 +56,7 @@ async fn main() -> anyhow::Result<()> {
         use armada::db::Repo;
         let key = U64::from_u64(lo);
         let lo_block_hash = ctx.db.blocks_index.read().await.lookup(&key)?.unwrap();
-        let lo_block = ctx.db.blocks.get(&lo_block_hash.into_str())?.unwrap();
+        let lo_block = ctx.db.blocks.get(&lo_block_hash.into_str()).await?.unwrap();
         let lo_parent_hash = lo_block.block_header.parent_hash.0;
         tx.send(Event::PullBlock(lo_parent_hash)).await.ok();
     }

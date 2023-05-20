@@ -209,7 +209,7 @@ where
         .collect::<HashSet<_>>();
     for hash in classes {
         let class = ctx.lock().await.seq.get_class_by_hash(&hash).await?;
-        ctx.lock().await.db.classes.put(&hash, class)?;
+        ctx.lock().await.db.classes.put(&hash, class).await?;
         tracing::debug!(hash, "Class saved");
     }
     {
@@ -231,7 +231,7 @@ pub async fn save_block(
     block: BlockWithTxs,
 ) -> anyhow::Result<Option<Event>> {
     let number = *block.block_header.block_number.as_ref() as u64;
-    tokio::task::block_in_place(|| db.blocks.put(hash.as_ref(), block.clone()))?;
+    db.blocks.put(hash.as_ref(), block.clone()).await?;
 
     let key = U64::from_u64(number);
     let val = U256::from_hex(hash.as_ref())?;
@@ -306,7 +306,7 @@ pub async fn save_state(
     number: u64,
     state: dto::StateUpdate,
 ) -> anyhow::Result<()> {
-    tokio::task::block_in_place(|| db.states.put(hash.as_ref(), state.clone()))?;
+    db.states.put(hash.as_ref(), state.clone()).await?;
 
     for (addr, nonce) in &state.state_diff.nonces {
         let address = U256::from_hex(addr.as_ref()).unwrap();
@@ -466,7 +466,7 @@ where
 
     tracing::info!(number = block_number, hash = block_hash.as_ref(), "L2 head");
 
-    let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref())?;
+    let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref()).await?;
     if !block_exists {
         let parent_hash = latest.block_header.parent_hash.0.clone();
         Ok(Some(Event::PullBlock(parent_hash)))

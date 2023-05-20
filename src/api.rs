@@ -1710,12 +1710,13 @@ pub mod gen {
     #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Transaction(pub Vec<BroadcastedTxn>); // name == binding_name
 
+    #[async_trait::async_trait]
     pub trait Rpc {
         /// Method: 'starknet_getBlockWithTxHashes'
         /// Summary: Get block information with transaction hashes given the block id
         /// Description:
         ///
-        fn getBlockWithTxHashes(
+        async fn getBlockWithTxHashes(
             &self,
             block_id: BlockId,
         ) -> std::result::Result<GetBlockWithTxHashesResult, jsonrpc::Error>;
@@ -1724,7 +1725,7 @@ pub mod gen {
         /// Summary: Get block information with full transactions given the block id
         /// Description:
         ///
-        fn getBlockWithTxs(
+        async fn getBlockWithTxs(
             &self,
             block_id: BlockId,
         ) -> std::result::Result<GetBlockWithTxsResult, jsonrpc::Error>;
@@ -1733,7 +1734,7 @@ pub mod gen {
         /// Summary: Get the information about the result of executing the requested block
         /// Description:
         ///
-        fn getStateUpdate(
+        async fn getStateUpdate(
             &self,
             block_id: BlockId,
         ) -> std::result::Result<GetStateUpdateResult, jsonrpc::Error>;
@@ -1742,7 +1743,7 @@ pub mod gen {
         /// Summary: Get the value of the storage at the given address and key
         /// Description:
         ///
-        fn getStorageAt(
+        async fn getStorageAt(
             &self,
             contract_address: Address,
             key: StorageKey,
@@ -1753,7 +1754,7 @@ pub mod gen {
         /// Summary: Get the details and status of a submitted transaction
         /// Description:
         ///
-        fn getTransactionByHash(
+        async fn getTransactionByHash(
             &self,
             transaction_hash: TxnHash,
         ) -> std::result::Result<Txn, jsonrpc::Error>;
@@ -1762,7 +1763,7 @@ pub mod gen {
         /// Summary: Get the details of a transaction by a given block id and index
         /// Description: Get the details of the transaction given by the identified block and index in that block. If no transaction is found, null is returned.
         ///
-        fn getTransactionByBlockIdAndIndex(
+        async fn getTransactionByBlockIdAndIndex(
             &self,
             block_id: BlockId,
             index: Index,
@@ -1772,7 +1773,7 @@ pub mod gen {
         /// Summary: Get the transaction receipt by the transaction hash
         /// Description:
         ///
-        fn getTransactionReceipt(
+        async fn getTransactionReceipt(
             &self,
             transaction_hash: TxnHash,
         ) -> std::result::Result<TxnReceipt, jsonrpc::Error>;
@@ -1781,7 +1782,7 @@ pub mod gen {
         /// Summary: Get the contract class definition in the given block associated with the given hash
         /// Description:
         ///
-        fn getClass(
+        async fn getClass(
             &self,
             block_id: BlockId,
             class_hash: Felt,
@@ -1791,7 +1792,7 @@ pub mod gen {
         /// Summary: Get the contract class hash in the given block for the contract deployed at the given address
         /// Description:
         ///
-        fn getClassHashAt(
+        async fn getClassHashAt(
             &self,
             block_id: BlockId,
             contract_address: Address,
@@ -1801,7 +1802,7 @@ pub mod gen {
         /// Summary: Get the contract class definition in the given block at the given address
         /// Description:
         ///
-        fn getClassAt(
+        async fn getClassAt(
             &self,
             block_id: BlockId,
             contract_address: Address,
@@ -1811,7 +1812,7 @@ pub mod gen {
         /// Summary: Get the number of transactions in a block given a block id
         /// Description: Returns the number of transactions in the designated block.
         ///
-        fn getBlockTransactionCount(
+        async fn getBlockTransactionCount(
             &self,
             block_id: BlockId,
         ) -> std::result::Result<GetBlockTransactionCountResult, jsonrpc::Error>;
@@ -1820,7 +1821,7 @@ pub mod gen {
         /// Summary: call a starknet function without creating a StarkNet transaction
         /// Description: Calls a function in a contract and returns the return value.  Using this call will not create a transaction; hence, will not change the state
         ///
-        fn call(
+        async fn call(
             &self,
             request: FunctionCall,
             block_id: BlockId,
@@ -1830,7 +1831,7 @@ pub mod gen {
         /// Summary: estimate the fee for of StarkNet transactions
         /// Description: estimates the resources required by transactions when applyed on a given state
         ///
-        fn estimateFee(
+        async fn estimateFee(
             &self,
             request: Request,
             block_id: BlockId,
@@ -1840,13 +1841,13 @@ pub mod gen {
         /// Summary: Get the most recent accepted block number
         /// Description:
         ///
-        fn blockNumber(&self) -> std::result::Result<BlockNumber, jsonrpc::Error>;
+        async fn blockNumber(&self) -> std::result::Result<BlockNumber, jsonrpc::Error>;
 
         /// Method: 'starknet_blockHashAndNumber'
         /// Summary: Get the most recent accepted block hash and number
         /// Description:
         ///
-        fn blockHashAndNumber(
+        async fn blockHashAndNumber(
             &self,
         ) -> std::result::Result<BlockHashAndNumberResult, jsonrpc::Error>;
 
@@ -1854,13 +1855,13 @@ pub mod gen {
         /// Summary: Return the currently configured StarkNet chain id
         /// Description:
         ///
-        fn chainId(&self) -> std::result::Result<ChainId, jsonrpc::Error>;
+        async fn chainId(&self) -> std::result::Result<ChainId, jsonrpc::Error>;
 
         /// Method: 'starknet_pendingTransactions'
         /// Summary: Returns the transactions in the transaction pool, recognized by this sequencer
         /// Description:
         ///
-        fn pendingTransactions(
+        async fn pendingTransactions(
             &self,
         ) -> std::result::Result<PendingTransactionsResult, jsonrpc::Error>;
 
@@ -1868,19 +1869,22 @@ pub mod gen {
         /// Summary: Returns an object about the sync status, or false if the node is not synching
         /// Description:
         ///
-        fn syncing(&self) -> std::result::Result<SyncingSyncing, jsonrpc::Error>;
+        async fn syncing(&self) -> std::result::Result<SyncingSyncing, jsonrpc::Error>;
 
         /// Method: 'starknet_getEvents'
         /// Summary: Returns all events matching the given filter
         /// Description: Returns all event objects matching the conditions in the provided filter
         ///
-        fn getEvents(&self, filter: Filter) -> std::result::Result<EventsChunk, jsonrpc::Error>;
+        async fn getEvents(
+            &self,
+            filter: Filter,
+        ) -> std::result::Result<EventsChunk, jsonrpc::Error>;
 
         /// Method: 'starknet_getNonce'
         /// Summary: Get the nonce associated with the given address in the given block
         /// Description:
         ///
-        fn getNonce(
+        async fn getNonce(
             &self,
             block_id: BlockId,
             contract_address: Address,
@@ -1890,7 +1894,7 @@ pub mod gen {
         /// Summary: Submit a new transaction to be added to the chain
         /// Description:
         ///
-        fn addInvokeTransaction(
+        async fn addInvokeTransaction(
             &self,
             invoke_transaction: BroadcastedInvokeTxn,
         ) -> std::result::Result<AddInvokeTransactionResult, jsonrpc::Error>;
@@ -1899,7 +1903,7 @@ pub mod gen {
         /// Summary: Submit a new class declaration transaction
         /// Description:
         ///
-        fn addDeclareTransaction(
+        async fn addDeclareTransaction(
             &self,
             declare_transaction: BroadcastedDeclareTxn,
         ) -> std::result::Result<AddDeclareTransactionResult, jsonrpc::Error>;
@@ -1908,7 +1912,7 @@ pub mod gen {
         /// Summary: Submit a new deploy account transaction
         /// Description:
         ///
-        fn addDeployAccountTransaction(
+        async fn addDeployAccountTransaction(
             &self,
             deploy_account_transaction: BroadcastedDeployAccountTxn,
         ) -> std::result::Result<AddDeployAccountTransactionResult, jsonrpc::Error>;
@@ -1917,7 +1921,7 @@ pub mod gen {
         /// Summary: For a given executed transaction, return the trace of its execution, including internal calls
         /// Description: Returns the execution trace of the transaction designated by the input hash
         ///
-        fn traceTransaction(
+        async fn traceTransaction(
             &self,
             transaction_hash: TxnHash,
         ) -> std::result::Result<TransactionTrace, jsonrpc::Error>;
@@ -1926,7 +1930,7 @@ pub mod gen {
         /// Summary: simulate a given transaction on the requested state, and generate the execution trace
         /// Description:
         ///
-        fn simulateTransaction(
+        async fn simulateTransaction(
             &self,
             block_id: BlockId,
             transaction: Transaction,
@@ -1937,13 +1941,13 @@ pub mod gen {
         /// Summary: Retrieve traces for all transactions in the given block
         /// Description: Returns the execution traces of all transactions included in the given block
         ///
-        fn traceBlockTransactions(
+        async fn traceBlockTransactions(
             &self,
             block_hash: BlockHash,
         ) -> std::result::Result<TraceBlockTransactionsTraces, jsonrpc::Error>;
     }
 
-    fn handle_starknet_getBlockWithTxHashes<RPC: Rpc>(
+    async fn handle_starknet_getBlockWithTxHashes<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -1969,7 +1973,7 @@ pub mod gen {
 
         let ArgByName { block_id } = args;
 
-        match rpc.getBlockWithTxHashes(block_id) {
+        match rpc.getBlockWithTxHashes(block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -1978,7 +1982,10 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getBlockWithTxs<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getBlockWithTxs<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId);
 
@@ -2001,7 +2008,7 @@ pub mod gen {
 
         let ArgByName { block_id } = args;
 
-        match rpc.getBlockWithTxs(block_id) {
+        match rpc.getBlockWithTxs(block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2010,7 +2017,10 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getStateUpdate<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getStateUpdate<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId);
 
@@ -2033,7 +2043,7 @@ pub mod gen {
 
         let ArgByName { block_id } = args;
 
-        match rpc.getStateUpdate(block_id) {
+        match rpc.getStateUpdate(block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2042,7 +2052,10 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getStorageAt<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getStorageAt<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(Address, StorageKey, BlockId);
 
@@ -2075,7 +2088,7 @@ pub mod gen {
             block_id,
         } = args;
 
-        match rpc.getStorageAt(contract_address, key, block_id) {
+        match rpc.getStorageAt(contract_address, key, block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2084,7 +2097,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getTransactionByHash<RPC: Rpc>(
+    async fn handle_starknet_getTransactionByHash<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2110,7 +2123,7 @@ pub mod gen {
 
         let ArgByName { transaction_hash } = args;
 
-        match rpc.getTransactionByHash(transaction_hash) {
+        match rpc.getTransactionByHash(transaction_hash).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2119,7 +2132,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getTransactionByBlockIdAndIndex<RPC: Rpc>(
+    async fn handle_starknet_getTransactionByBlockIdAndIndex<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2146,7 +2159,7 @@ pub mod gen {
 
         let ArgByName { block_id, index } = args;
 
-        match rpc.getTransactionByBlockIdAndIndex(block_id, index) {
+        match rpc.getTransactionByBlockIdAndIndex(block_id, index).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2155,7 +2168,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getTransactionReceipt<RPC: Rpc>(
+    async fn handle_starknet_getTransactionReceipt<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2181,7 +2194,7 @@ pub mod gen {
 
         let ArgByName { transaction_hash } = args;
 
-        match rpc.getTransactionReceipt(transaction_hash) {
+        match rpc.getTransactionReceipt(transaction_hash).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2190,7 +2203,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getClass<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getClass<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Felt);
 
@@ -2220,7 +2233,7 @@ pub mod gen {
             class_hash,
         } = args;
 
-        match rpc.getClass(block_id, class_hash) {
+        match rpc.getClass(block_id, class_hash).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2229,7 +2242,10 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getClassHashAt<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getClassHashAt<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Address);
 
@@ -2259,7 +2275,7 @@ pub mod gen {
             contract_address,
         } = args;
 
-        match rpc.getClassHashAt(block_id, contract_address) {
+        match rpc.getClassHashAt(block_id, contract_address).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2268,7 +2284,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getClassAt<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getClassAt<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Address);
 
@@ -2298,7 +2314,7 @@ pub mod gen {
             contract_address,
         } = args;
 
-        match rpc.getClassAt(block_id, contract_address) {
+        match rpc.getClassAt(block_id, contract_address).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2307,7 +2323,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getBlockTransactionCount<RPC: Rpc>(
+    async fn handle_starknet_getBlockTransactionCount<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2333,7 +2349,7 @@ pub mod gen {
 
         let ArgByName { block_id } = args;
 
-        match rpc.getBlockTransactionCount(block_id) {
+        match rpc.getBlockTransactionCount(block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2342,7 +2358,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_call<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_call<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(FunctionCall, BlockId);
 
@@ -2366,7 +2382,7 @@ pub mod gen {
 
         let ArgByName { request, block_id } = args;
 
-        match rpc.call(request, block_id) {
+        match rpc.call(request, block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2375,7 +2391,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_estimateFee<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_estimateFee<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(Request, BlockId);
 
@@ -2399,7 +2415,7 @@ pub mod gen {
 
         let ArgByName { request, block_id } = args;
 
-        match rpc.estimateFee(request, block_id) {
+        match rpc.estimateFee(request, block_id).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2408,21 +2424,11 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_blockNumber<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
-        match rpc.blockNumber() {
-            Ok(ret) => match serde_json::to_value(ret) {
-                Ok(ret) => jsonrpc::Response::result(ret),
-                Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
-            },
-            Err(e) => jsonrpc::Response::error(e.code, &e.message),
-        }
-    }
-
-    fn handle_starknet_blockHashAndNumber<RPC: Rpc>(
+    async fn handle_starknet_blockNumber<RPC: Rpc>(
         rpc: &RPC,
         _params: &Value,
     ) -> jsonrpc::Response {
-        match rpc.blockHashAndNumber() {
+        match rpc.blockNumber().await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
@@ -2431,21 +2437,11 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_chainId<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
-        match rpc.chainId() {
-            Ok(ret) => match serde_json::to_value(ret) {
-                Ok(ret) => jsonrpc::Response::result(ret),
-                Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
-            },
-            Err(e) => jsonrpc::Response::error(e.code, &e.message),
-        }
-    }
-
-    fn handle_starknet_pendingTransactions<RPC: Rpc>(
+    async fn handle_starknet_blockHashAndNumber<RPC: Rpc>(
         rpc: &RPC,
         _params: &Value,
     ) -> jsonrpc::Response {
-        match rpc.pendingTransactions() {
+        match rpc.blockHashAndNumber().await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
@@ -2454,8 +2450,8 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_syncing<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
-        match rpc.syncing() {
+    async fn handle_starknet_chainId<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
+        match rpc.chainId().await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
@@ -2464,7 +2460,30 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getEvents<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_pendingTransactions<RPC: Rpc>(
+        rpc: &RPC,
+        _params: &Value,
+    ) -> jsonrpc::Response {
+        match rpc.pendingTransactions().await {
+            Ok(ret) => match serde_json::to_value(ret) {
+                Ok(ret) => jsonrpc::Response::result(ret),
+                Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
+            },
+            Err(e) => jsonrpc::Response::error(e.code, &e.message),
+        }
+    }
+
+    async fn handle_starknet_syncing<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
+        match rpc.syncing().await {
+            Ok(ret) => match serde_json::to_value(ret) {
+                Ok(ret) => jsonrpc::Response::result(ret),
+                Err(e) => jsonrpc::Response::error(1003, &format!("{e:?}")),
+            },
+            Err(e) => jsonrpc::Response::error(e.code, &e.message),
+        }
+    }
+
+    async fn handle_starknet_getEvents<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(Filter);
 
@@ -2487,7 +2506,7 @@ pub mod gen {
 
         let ArgByName { filter } = args;
 
-        match rpc.getEvents(filter) {
+        match rpc.getEvents(filter).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2496,7 +2515,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_getNonce<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getNonce<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Address);
 
@@ -2526,7 +2545,7 @@ pub mod gen {
             contract_address,
         } = args;
 
-        match rpc.getNonce(block_id, contract_address) {
+        match rpc.getNonce(block_id, contract_address).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2535,7 +2554,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_addInvokeTransaction<RPC: Rpc>(
+    async fn handle_starknet_addInvokeTransaction<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2561,7 +2580,7 @@ pub mod gen {
 
         let ArgByName { invoke_transaction } = args;
 
-        match rpc.addInvokeTransaction(invoke_transaction) {
+        match rpc.addInvokeTransaction(invoke_transaction).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2570,7 +2589,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_addDeclareTransaction<RPC: Rpc>(
+    async fn handle_starknet_addDeclareTransaction<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2600,7 +2619,7 @@ pub mod gen {
             declare_transaction,
         } = args;
 
-        match rpc.addDeclareTransaction(declare_transaction) {
+        match rpc.addDeclareTransaction(declare_transaction).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2609,7 +2628,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_addDeployAccountTransaction<RPC: Rpc>(
+    async fn handle_starknet_addDeployAccountTransaction<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2639,7 +2658,10 @@ pub mod gen {
             deploy_account_transaction,
         } = args;
 
-        match rpc.addDeployAccountTransaction(deploy_account_transaction) {
+        match rpc
+            .addDeployAccountTransaction(deploy_account_transaction)
+            .await
+        {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2648,7 +2670,10 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_traceTransaction<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_traceTransaction<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(TxnHash);
 
@@ -2671,7 +2696,7 @@ pub mod gen {
 
         let ArgByName { transaction_hash } = args;
 
-        match rpc.traceTransaction(transaction_hash) {
+        match rpc.traceTransaction(transaction_hash).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2680,7 +2705,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_simulateTransaction<RPC: Rpc>(
+    async fn handle_starknet_simulateTransaction<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2716,7 +2741,10 @@ pub mod gen {
             simulation_flags,
         } = args;
 
-        match rpc.simulateTransaction(block_id, transaction, simulation_flags) {
+        match rpc
+            .simulateTransaction(block_id, transaction, simulation_flags)
+            .await
+        {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2725,7 +2753,7 @@ pub mod gen {
         }
     }
 
-    fn handle_starknet_traceBlockTransactions<RPC: Rpc>(
+    async fn handle_starknet_traceBlockTransactions<RPC: Rpc>(
         rpc: &RPC,
         params: &Value,
     ) -> jsonrpc::Response {
@@ -2751,7 +2779,7 @@ pub mod gen {
 
         let ArgByName { block_hash } = args;
 
-        match rpc.traceBlockTransactions(block_hash) {
+        match rpc.traceBlockTransactions(block_hash).await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
                 Err(e) => jsonrpc::Response::error(-32603, "Internal error"),
@@ -2760,43 +2788,57 @@ pub mod gen {
         }
     }
 
-    pub fn handle<RPC: Rpc>(rpc: &RPC, req: &jsonrpc::Request) -> jsonrpc::Response {
+    pub async fn handle<RPC: Rpc>(rpc: &RPC, req: &jsonrpc::Request) -> jsonrpc::Response {
         let params = &req.params.clone().unwrap_or_default();
 
         let response = match req.method.as_str() {
-            "starknet_getBlockWithTxHashes" => handle_starknet_getBlockWithTxHashes(rpc, params),
-            "starknet_getBlockWithTxs" => handle_starknet_getBlockWithTxs(rpc, params),
-            "starknet_getStateUpdate" => handle_starknet_getStateUpdate(rpc, params),
-            "starknet_getStorageAt" => handle_starknet_getStorageAt(rpc, params),
-            "starknet_getTransactionByHash" => handle_starknet_getTransactionByHash(rpc, params),
+            "starknet_getBlockWithTxHashes" => {
+                handle_starknet_getBlockWithTxHashes(rpc, params).await
+            }
+            "starknet_getBlockWithTxs" => handle_starknet_getBlockWithTxs(rpc, params).await,
+            "starknet_getStateUpdate" => handle_starknet_getStateUpdate(rpc, params).await,
+            "starknet_getStorageAt" => handle_starknet_getStorageAt(rpc, params).await,
+            "starknet_getTransactionByHash" => {
+                handle_starknet_getTransactionByHash(rpc, params).await
+            }
             "starknet_getTransactionByBlockIdAndIndex" => {
-                handle_starknet_getTransactionByBlockIdAndIndex(rpc, params)
+                handle_starknet_getTransactionByBlockIdAndIndex(rpc, params).await
             }
-            "starknet_getTransactionReceipt" => handle_starknet_getTransactionReceipt(rpc, params),
-            "starknet_getClass" => handle_starknet_getClass(rpc, params),
-            "starknet_getClassHashAt" => handle_starknet_getClassHashAt(rpc, params),
-            "starknet_getClassAt" => handle_starknet_getClassAt(rpc, params),
+            "starknet_getTransactionReceipt" => {
+                handle_starknet_getTransactionReceipt(rpc, params).await
+            }
+            "starknet_getClass" => handle_starknet_getClass(rpc, params).await,
+            "starknet_getClassHashAt" => handle_starknet_getClassHashAt(rpc, params).await,
+            "starknet_getClassAt" => handle_starknet_getClassAt(rpc, params).await,
             "starknet_getBlockTransactionCount" => {
-                handle_starknet_getBlockTransactionCount(rpc, params)
+                handle_starknet_getBlockTransactionCount(rpc, params).await
             }
-            "starknet_call" => handle_starknet_call(rpc, params),
-            "starknet_estimateFee" => handle_starknet_estimateFee(rpc, params),
-            "starknet_blockNumber" => handle_starknet_blockNumber(rpc, params),
-            "starknet_blockHashAndNumber" => handle_starknet_blockHashAndNumber(rpc, params),
-            "starknet_chainId" => handle_starknet_chainId(rpc, params),
-            "starknet_pendingTransactions" => handle_starknet_pendingTransactions(rpc, params),
-            "starknet_syncing" => handle_starknet_syncing(rpc, params),
-            "starknet_getEvents" => handle_starknet_getEvents(rpc, params),
-            "starknet_getNonce" => handle_starknet_getNonce(rpc, params),
-            "starknet_addInvokeTransaction" => handle_starknet_addInvokeTransaction(rpc, params),
-            "starknet_addDeclareTransaction" => handle_starknet_addDeclareTransaction(rpc, params),
+            "starknet_call" => handle_starknet_call(rpc, params).await,
+            "starknet_estimateFee" => handle_starknet_estimateFee(rpc, params).await,
+            "starknet_blockNumber" => handle_starknet_blockNumber(rpc, params).await,
+            "starknet_blockHashAndNumber" => handle_starknet_blockHashAndNumber(rpc, params).await,
+            "starknet_chainId" => handle_starknet_chainId(rpc, params).await,
+            "starknet_pendingTransactions" => {
+                handle_starknet_pendingTransactions(rpc, params).await
+            }
+            "starknet_syncing" => handle_starknet_syncing(rpc, params).await,
+            "starknet_getEvents" => handle_starknet_getEvents(rpc, params).await,
+            "starknet_getNonce" => handle_starknet_getNonce(rpc, params).await,
+            "starknet_addInvokeTransaction" => {
+                handle_starknet_addInvokeTransaction(rpc, params).await
+            }
+            "starknet_addDeclareTransaction" => {
+                handle_starknet_addDeclareTransaction(rpc, params).await
+            }
             "starknet_addDeployAccountTransaction" => {
-                handle_starknet_addDeployAccountTransaction(rpc, params)
+                handle_starknet_addDeployAccountTransaction(rpc, params).await
             }
-            "starknet_traceTransaction" => handle_starknet_traceTransaction(rpc, params),
-            "starknet_simulateTransaction" => handle_starknet_simulateTransaction(rpc, params),
+            "starknet_traceTransaction" => handle_starknet_traceTransaction(rpc, params).await,
+            "starknet_simulateTransaction" => {
+                handle_starknet_simulateTransaction(rpc, params).await
+            }
             "starknet_traceBlockTransactions" => {
-                handle_starknet_traceBlockTransactions(rpc, params)
+                handle_starknet_traceBlockTransactions(rpc, params).await
             }
             _ => jsonrpc::Response::error(-32601, "Method not found"),
         };
