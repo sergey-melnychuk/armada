@@ -56,9 +56,7 @@ impl SeqApi for TestSeq {
         anyhow::bail!("Block not found");
     }
 
-    async fn get_pending_block(
-        &self,
-    ) -> anyhow::Result<armada::api::gen::PendingBlockWithTxs> {
+    async fn get_pending_block(&self) -> anyhow::Result<armada::api::gen::PendingBlockWithTxs> {
         anyhow::bail!("Block not found");
     }
 
