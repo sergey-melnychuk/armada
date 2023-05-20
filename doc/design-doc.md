@@ -197,6 +197,12 @@ If syncing needs to be started from some intermediate state, it can actually pro
         syncing        <---synced blocks--->        syncing
 ```
 
+### Reorg "Unwinding"
+
+Even though the suggested "top-down" syncing always converges to the longest (and confirment on L1/L2) chain, in case of reorg, the data (transactions, state updates) from rejected blocks need to be un-indexed (removed from indices key by key) the same way it was indexed in the first place. The cost of having lean indices is a necessity to keep them consistent manually.
+
+In practice this means that during sync an extra check needs to be performed for "fresh" block to verify that there is no block at given index registered before. If there is - such "stale" block needs to be marked as rejected and all transactions & state updates un-indexed.
+
 ## NETWORK
 
 ### Distributed Setup
