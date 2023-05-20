@@ -72,10 +72,6 @@ impl SeqClient {
 #[cfg(test)]
 mod tests {
 
-    // TODO: mainnet: use or remove?
-    // const SEQ_URL: &str = "https://alpha-mainnet.starknet.io";
-    // const ETH_URL: &str = "https://eth.llamarpc.com";
-
     mod goerli {
         use super::super::*;
 

@@ -116,7 +116,7 @@ pub enum Event {
     Block(crate::api::gen::BlockWithTxs),
     Pending(crate::api::gen::PendingBlockWithTxs),
     Latest(crate::api::gen::BlockWithTxs),
-    Uptime(u64),
+    Uptime(u64), // TODO: remove (it was added just as an example)
 }
 
 pub async fn handler<ETH, SEQ>(_ctx: Arc<Mutex<Context<ETH, SEQ>>>, event: Event)
@@ -124,12 +124,13 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    #[allow(clippy::single_match)] // TODO: remove
     match event {
         Event::Uptime(seconds) => {
             tracing::info!(seconds, "uptime");
         }
-        _ => {}
+        event => {
+            tracing::warn!(?event, "Unsupported event detected");
+        }
     }
 }
 
