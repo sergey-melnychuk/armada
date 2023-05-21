@@ -150,12 +150,13 @@ pub async fn save_block(
 
     let number = *block.block_header.block_number.as_ref() as u64;
     tokio::task::block_in_place(|| db.blocks.put(hash.as_ref(), block.clone()))?;
-    db.blocks_index
-        .write()
-        .await
-        .insert(&U64::from_u64(number), U256::from_hex(hash.as_ref())?)?;
+
+    let key = U64::from_u64(number);
+    let val = U256::from_hex(hash.as_ref())?;
+    db.blocks_index.write().await.insert(&key, val)?;
 
     let parent_hash = block.block_header.parent_hash.0;
+    tracing::debug!(hash = parent_hash.as_ref(), "Parent block");
 
     let saved_parent_hash = db
         .blocks_index
@@ -194,6 +195,11 @@ where
                 let seq = &ctx.lock().await.seq;
                 pull_block(seq, hash.clone()).await?
             };
+            tracing::info!(
+                number = block.block_header.block_number.as_ref(),
+                hash = block.block_header.block_hash.0.as_ref(),
+                "Block pulled"
+            );
 
             let maybe_event = {
                 let db = &mut ctx.lock().await.db;

@@ -11,17 +11,21 @@ pub struct U256(pub [u8; 32]);
 impl U256 {
     pub fn from_hex(hex: &str) -> anyhow::Result<Self> {
         let mut slice = [0u8; 32];
-        let hex = format!("{:064}", hex.strip_prefix("0x").unwrap_or(hex));
+        let hex = format!("{:0>64}", hex.strip_prefix("0x").unwrap_or(hex));
         hex::decode_to_slice(hex, &mut slice)?;
         Ok(Self(slice))
     }
 
     pub fn into_str(&self) -> String {
-        hex::encode(self.0)
+        let unpadded = hex::encode(self.0)
+            .chars()
+            .skip_while(|c| c == &'0')
+            .collect::<String>();
+        format!("0x{}", unpadded)
     }
 
     pub fn into_str_pad(&self) -> String {
-        format!("0x{:064}", self.into_str())
+        format!("0x{:0>64}", hex::encode(self.0))
     }
 }
 
@@ -143,4 +147,18 @@ pub fn patch_block(mut value: serde_json::Value) -> serde_json::Value {
     }
 
     patch_pending_block(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_u256_from_hex() -> anyhow::Result<()> {
+        let hex = "55aaf50c8001b89bcc180c4be977ec519b401ced8366e2e2da78dc5285306d8";
+        let num = U256::from_hex(hex)?;
+        assert_eq!(num.into_str(), "0x".to_string() + hex);
+        assert_eq!(num.into_str_pad(), "0x0".to_string() + hex);
+        Ok(())
+    }
 }

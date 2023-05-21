@@ -34,10 +34,11 @@ async fn main() -> anyhow::Result<()> {
     let (lo, hi) = {
         let idx = db.blocks_index.read().await;
         let min = idx.min()?.unwrap_or_default().into_u64();
-        let max = idx.min()?.unwrap_or_default().into_u64();
+        let max = idx.max()?.unwrap_or_default().into_u64();
         (min, max)
     };
     tracing::info!(lo, hi, "Sycned blocks");
+    // TODO: Start syncing down from min block
 
     let ctx = Context::new(eth, seq, shared, db, config);
     let source = Source::new(ctx.clone());
