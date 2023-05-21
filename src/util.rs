@@ -5,6 +5,67 @@ use tokio::{
     task::JoinHandle,
 };
 
+#[derive(Clone, Debug, Default)]
+pub struct U256(pub [u8; 32]);
+
+impl U256 {
+    pub fn from_hex(hex: &str) -> anyhow::Result<Self> {
+        let mut slice = [0u8; 32];
+        let hex = format!("{:064}", hex.strip_prefix("0x").unwrap_or(hex));
+        hex::decode_to_slice(hex, &mut slice)?;
+        Ok(Self(slice))
+    }
+
+    pub fn into_str(&self) -> String {
+        hex::encode(self.0)
+    }
+
+    pub fn into_str_pad(&self) -> String {
+        format!("0x{:064}", self.into_str())
+    }
+}
+
+impl AsRef<[u8]> for U256 {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<'a> From<&'a [u8]> for U256 {
+    fn from(value: &'a [u8]) -> Self {
+        let mut hex = [0u8; 32];
+        hex.copy_from_slice(value);
+        Self(hex)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct U64(pub [u8; 8]);
+
+impl U64 {
+    pub fn from_u64(x: u64) -> Self {
+        Self(x.to_be_bytes())
+    }
+
+    pub fn into_u64(&self) -> u64 {
+        u64::from_be_bytes(self.0)
+    }
+}
+
+impl AsRef<[u8]> for U64 {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<'a> From<&'a [u8]> for U64 {
+    fn from(value: &'a [u8]) -> Self {
+        let mut hex = [0u8; 8];
+        hex.copy_from_slice(value);
+        Self(hex)
+    }
+}
+
 pub struct Waiter {
     jh: RefCell<Option<JoinHandle<()>>>,
     tx: RefCell<Option<Sender<()>>>,

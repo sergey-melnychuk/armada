@@ -22,6 +22,7 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
     - [ ] accounts
   - [x] sync testkit
 - [ ] Storage
+  - [ ] async?
   - [x] local
   - [ ] remote (e.g. AWS S3)
 - [ ] Indices

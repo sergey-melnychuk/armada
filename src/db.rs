@@ -3,16 +3,22 @@ use std::{
     io::{Read, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use serde::{de::DeserializeOwned, Serialize};
-use yakvdb::{api::tree::Tree, disk::block::Block, disk::file::File as YakFile};
+use tokio::sync::RwLock;
+use yakvdb::typed::{Store, DB};
 
-use crate::api::gen::BlockWithTxs;
+use crate::{
+    api::gen::BlockWithTxs,
+    util::{U256, U64},
+};
 
 #[derive(Clone)]
 pub struct Storage {
-    blocks: DirRepo<BlockWithTxs>,
+    pub blocks: DirRepo<BlockWithTxs>,
+    pub blocks_index: Arc<RwLock<Store<U64, U256>>>,
 }
 
 impl Storage {
@@ -21,15 +27,20 @@ impl Storage {
 
         let base = base.as_ref();
 
-        let mut blocks = base.to_owned();
-        blocks.push("block");
-        let blocks = DirRepo::new(&blocks);
+        let mut path = base.to_owned();
+        path.push("block");
+        let blocks = DirRepo::new(&path);
 
-        Self { blocks }
-    }
+        let mut path = base.to_owned();
+        path.push("block");
+        path.push("block_number_to_block_hash.yak");
+        let blocks_index = Store::new(&path);
+        let blocks_index = Arc::new(RwLock::new(blocks_index));
 
-    pub fn blocks(&self) -> &DirRepo<BlockWithTxs> {
-        &self.blocks
+        Self {
+            blocks,
+            blocks_index,
+        }
     }
 }
 
@@ -127,57 +138,4 @@ where
     fn min(&self) -> anyhow::Result<Option<K>>;
     fn max(&self) -> anyhow::Result<Option<K>>;
     // TODO: add iter(range), above, below?
-}
-
-pub struct FileIndex<K, V> {
-    file: YakFile<Block>,
-    _phantom: PhantomData<(K, V)>,
-}
-
-impl<K, V> Index<K, V> for FileIndex<K, V>
-where
-    K: AsRef<[u8]> + for<'a> From<&'a [u8]>,
-    V: AsRef<[u8]> + for<'a> From<&'a [u8]>,
-{
-    fn new(path: &Path) -> Self {
-        let file: YakFile<Block> = if !path.exists() {
-            YakFile::make(path, 4096).unwrap()
-        } else {
-            YakFile::open(path).unwrap()
-        };
-        Self {
-            file,
-            _phantom: PhantomData,
-        }
-    }
-
-    fn has(&self, key: &K) -> anyhow::Result<bool> {
-        Ok(self.get(key)?.is_some())
-    }
-
-    fn get(&self, key: &K) -> anyhow::Result<Option<V>> {
-        Ok(self
-            .file
-            .lookup(key.as_ref())?
-            .as_ref()
-            .map(|bytes| V::from(bytes)))
-    }
-
-    fn del(&mut self, key: &K) -> anyhow::Result<Option<V>> {
-        let val = self.get(key)?;
-        self.file.remove(key.as_ref())?;
-        Ok(val)
-    }
-
-    fn put(&mut self, key: &K, val: V) -> anyhow::Result<()> {
-        Ok(self.file.insert(key.as_ref(), val.as_ref())?)
-    }
-
-    fn min(&self) -> anyhow::Result<Option<K>> {
-        Ok(self.file.min()?.as_ref().map(|bytes| K::from(bytes)))
-    }
-
-    fn max(&self) -> anyhow::Result<Option<K>> {
-        Ok(self.file.max()?.as_ref().map(|bytes| K::from(bytes)))
-    }
 }

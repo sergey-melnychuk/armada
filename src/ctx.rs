@@ -106,7 +106,7 @@ where
         let key = hash.0.as_ref();
         let block = self
             .db
-            .blocks()
+            .blocks
             .get(key)
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(

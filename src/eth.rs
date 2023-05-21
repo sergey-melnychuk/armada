@@ -54,7 +54,7 @@ impl EthClient {
             "method": "eth_getBlockByNumber",
             "params": [
                 "latest",
-                true
+                false
             ],
             "id": 0
         }))
@@ -95,6 +95,7 @@ impl EthClient {
             .await?
             .json()
             .await?;
+        // TODO: report error if any
         Ok(response["result"].clone())
     }
 }
@@ -110,7 +111,15 @@ fn parse_num_as_hex(value: &serde_json::Value) -> anyhow::Result<NumAsHex> {
     value
         .as_str()
         .ok_or(anyhow::anyhow!("Failed to parse hex number"))
-        .and_then(|hex| NumAsHex::try_new(hex).map_err(|e| anyhow::anyhow!(e)))
+        .and_then(|hex| {
+            if hex == "0x" {
+                // input "0x" here causes following runtime error:
+                // "thread 'eth::tests::test_goerli' has overflowed its stack"
+                NumAsHex::try_new("0x0").map_err(|e| anyhow::anyhow!(e))
+            } else {
+                NumAsHex::try_new(hex).map_err(|e| anyhow::anyhow!(e))
+            }
+        })
 }
 
 fn encode_ethereum_call_data(signature: &[u8]) -> String {
@@ -125,7 +134,7 @@ mod tests {
 
     // cargo test --package armada --lib -- eth::tests::test_goerli --exact --nocapture
     #[tokio::test]
-    #[ignore = "needs valid INFURA_TOKEN"]
+    // #[ignore = "needs valid INFURA_TOKEN"]
     async fn test_goerli() -> anyhow::Result<()> {
         let token = std::env::var("INFURA_TOKEN")?;
         let url = format!("https://goerli.infura.io/v3/{token}");

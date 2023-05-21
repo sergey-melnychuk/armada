@@ -4,11 +4,12 @@ use futures::Future;
 use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
 use crate::{
-    api::gen::NumAsHex,
+    api::gen::{BlockWithTxs, Felt},
     ctx::Context,
+    db::Storage,
     eth::{self, EthApi},
     seq::SeqApi,
-    util::{is_open, Waiter},
+    util::{is_open, Waiter, U256, U64},
 };
 
 pub struct Source<T, C> {
@@ -79,6 +80,10 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
     pub async fn get(&mut self) -> Option<T> {
         self.rx.recv().await
     }
+
+    pub fn tx(&self) -> mpsc::Sender<T> {
+        self.tx.clone()
+    }
 }
 
 pub async fn sync<ETH, SEQ, F, R>(source: Source<Event, Context<ETH, SEQ>>, handler: F) -> Waiter
@@ -86,7 +91,7 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
     F: Fn(Arc<Mutex<Context<ETH, SEQ>>>, Event) -> R + Copy + Send + Sync + 'static,
-    R: Future<Output = ()> + Send + 'static,
+    R: Future<Output = anyhow::Result<Vec<Event>>> + Send + 'static,
 {
     let delay = source.ctx().lock().await.config.poll_delay;
 
@@ -96,8 +101,18 @@ where
 
         while let Some(event) = source.get().await {
             let ctx = source.ctx();
+            let tx = source.tx();
             tokio::spawn(async move {
-                handler(ctx, event).await;
+                match handler(ctx, event.clone()).await {
+                    Ok(events) => {
+                        for event in events {
+                            tx.send(event).await.ok();
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!(?event, reason=?e, "Handler failed");
+                    }
+                }
             });
             if !is_open(&mut rx) {
                 break;
@@ -109,29 +124,92 @@ where
     Waiter::new(jh, tx)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Event {
     Ethereum(eth::State),
-    Head(u64, NumAsHex),
-    Block(crate::api::gen::BlockWithTxs),
-    Pending(crate::api::gen::PendingBlockWithTxs),
-    Latest(crate::api::gen::BlockWithTxs),
+    Head(u64, Felt),
+    PullBlock(Felt),
+    PurgeBlock(u64, Felt),
     Uptime(u64), // TODO: remove (it was added just as an example)
 }
 
-pub async fn handler<ETH, SEQ>(_ctx: Arc<Mutex<Context<ETH, SEQ>>>, event: Event)
+pub async fn pull_block<SEQ: SeqApi + Send + Sync + Clone + 'static>(
+    seq: &SEQ,
+    hash: Felt,
+) -> anyhow::Result<BlockWithTxs> {
+    seq.get_block_by_hash(hash.as_ref()).await
+}
+
+pub async fn save_block(
+    db: &mut Storage,
+    hash: Felt,
+    block: BlockWithTxs,
+) -> anyhow::Result<Option<Event>> {
+    use crate::db::Repo;
+    use yakvdb::typed::DB;
+
+    let number = *block.block_header.block_number.as_ref() as u64;
+    tokio::task::block_in_place(|| db.blocks.put(hash.as_ref(), block.clone()))?;
+    db.blocks_index
+        .write()
+        .await
+        .insert(&U64::from_u64(number), U256::from_hex(hash.as_ref())?)?;
+
+    let parent_hash = block.block_header.parent_hash.0;
+
+    let saved_parent_hash = db
+        .blocks_index
+        .read()
+        .await
+        .lookup(&U64::from_u64(number - 1))?;
+    if saved_parent_hash.is_none() {
+        return Ok(Some(Event::PullBlock(parent_hash)));
+    }
+
+    let saved_parent_hash = saved_parent_hash.unwrap();
+    if parent_hash.as_ref() != &saved_parent_hash.into_str() {
+        // A reorg is detected, Nth block's parent_hash is different from stored (N-1)th block hash.
+        // TODO: "unsave" saved `number-1` block and pull the correct one instead of it: `parent_hash`.
+        return Ok(Some(Event::PurgeBlock(number - 1, parent_hash)));
+    }
+
+    Ok(None)
+}
+
+pub async fn handler<ETH, SEQ>(
+    ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+    event: Event,
+) -> anyhow::Result<Vec<Event>>
 where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
+    tracing::debug!(?event, "Handling");
     match event {
         Event::Uptime(seconds) => {
             tracing::info!(seconds, "uptime");
         }
+        Event::PullBlock(hash) => {
+            let block = {
+                let seq = &ctx.lock().await.seq;
+                pull_block(seq, hash.clone()).await?
+            };
+
+            let maybe_event = {
+                let db = &mut ctx.lock().await.db;
+                save_block(db, hash, block).await?
+            };
+
+            if let Some(event) = maybe_event {
+                return Ok(vec![event]);
+            }
+        }
         event => {
-            tracing::warn!(?event, "Unsupported event detected");
+            tracing::warn!(?event, "Ignored");
         }
     }
+
+    Ok(vec![])
 }
 
 pub async fn poll_uptime<ETH, SEQ>(
@@ -161,10 +239,11 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
+    use crate::db::Repo;
     let latest = ctx.lock().await.seq.get_latest_block().await?;
 
     let block_number = *latest.block_header.block_number.as_ref() as u64;
-    let block_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref()).unwrap();
+    let block_hash = latest.block_header.block_hash.0.clone();
 
     tracing::info!(
         number = block_number,
@@ -172,5 +251,12 @@ where
         "Latest block"
     );
 
-    Ok(Some(Event::Head(block_number, block_hash)))
+    let block_synced = ctx.lock().await.db.blocks.has(block_hash.as_ref())?;
+    let event = if !block_synced {
+        Event::PullBlock(latest.block_header.parent_hash.0.clone())
+    } else {
+        Event::Head(block_number, block_hash)
+    };
+
+    Ok(Some(event))
 }

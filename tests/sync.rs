@@ -10,12 +10,17 @@ mod common;
 
 #[tokio::test]
 async fn test_sync_events() -> anyhow::Result<()> {
+    use armada::db::Repo;
+
     let test = common::Test::new().await;
 
     let latest: BlockWithTxs = get_file("etc/805543-block.json").await?;
     let latest_number = *latest.block_header.block_number.as_ref() as u64;
     let latest_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref())?;
-    test.ctx().seq.set_latest(latest).await;
+
+    test.ctx().seq.set_latest(latest.clone()).await;
+
+    test.ctx().db.blocks.put(latest_hash.as_ref(), latest)?;
 
     test.ctx()
         .eth
@@ -32,6 +37,9 @@ async fn test_sync_events() -> anyhow::Result<()> {
     src.add("seq", sync::poll_seq, d).await;
     src.add("eth", sync::poll_eth, d * 2).await;
     let mut src = src.run();
+
+    // Line below is useful when debugging event stream
+    //while let Some(e) = src.get().await { println!("{e:?}"); }
 
     match src.get().await.expect("one") {
         Event::Head(number, hash) => {
