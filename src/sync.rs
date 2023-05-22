@@ -46,7 +46,7 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
         tokio::spawn(async move {
             ready.notify_one();
             go.notified().await;
-            tokio::time::sleep(poll).await;
+            tokio::time::sleep(poll / 10).await;
             while !tx.is_closed() {
                 let r = f(ctx.clone());
                 let r = r.await;
@@ -161,13 +161,12 @@ pub async fn save_block(
     for (idx, tx) in block.block_body_with_txs.transactions.iter().enumerate() {
         let index = U64::from_u64(idx as u64);
         let block = U256::from_hex(hash.as_ref()).unwrap();
-        let val = BlockAndIndex::from(block, index);
 
+        let _val = BlockAndIndex::from(block, index);
         let key = U256::from_hex(tx_hash(tx).as_ref())?;
-        db.txs_index.write().await.insert(&key, val)?;
-
-        let x = db.txs_index.read().await.lookup(&key)?.unwrap();
-        tracing::warn!(block=x.block().into_str(), index=x.index().into_u64(), "TX");
+        // TODO: panics due to a bug https://github.com/sergey-melnychuk/yakvdb/issues/4
+        // db.txs_index.write().await.insert(&key, val)?;
+        tracing::debug!(hash = key.into_str(), "TX saved");
     }
 
     let parent_hash = block.block_header.parent_hash.0;
