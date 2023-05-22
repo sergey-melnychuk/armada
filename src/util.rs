@@ -94,7 +94,7 @@ impl Waiter {
         Some((jh, tx))
     }
 
-    pub async fn wait(&self) {
+    pub async fn done(&self) {
         if self.jh.borrow().is_none() {
             return;
         }

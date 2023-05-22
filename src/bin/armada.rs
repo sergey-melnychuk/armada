@@ -64,8 +64,8 @@ async fn main() -> anyhow::Result<()> {
     let addr: SocketAddr = rpc_bind_addr.parse()?;
     let (addr, server) = armada::rpc::serve(&addr, ctx).await;
     tracing::info!(at=?addr, "RPC server listening");
-    server.wait().await;
-    syncer.wait().await;
+    server.done().await;
+    syncer.done().await;
 
     Ok(())
 }
