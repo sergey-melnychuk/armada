@@ -14,9 +14,9 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
     - [x] pending block
     - [x] latest block
     - [x] ethereum state
-  - [ ] event handlers
-    - [ ] block
-    - [ ] reorg
+  - [x] event handlers
+    - [x] save block
+    - [x] reorg (purge block)
     - [ ] state update
     - [ ] classes
     - [ ] accounts
@@ -26,17 +26,19 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
   - [ ] gzip
   - [ ] async?
   - [ ] remote (AWS S3)
-- [ ] Indices
+- [x] Indices
   - (see the Design Doc for more details)
+  - [x] local ([yakvdb](https://github.com/sergey-melnychuk/yakvdb))
+  - [ ] remote (AWS DynamoDB)
 - [x] Single shared context
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
 - [ ] JSON-RPC API methods impl:
-  - [ ] `starknet_getBlockWithTxHashes`
-  - [ ] `starknet_getBlockWithTxs`
+  - [x] `starknet_getBlockWithTxHashes`
+  - [x] `starknet_getBlockWithTxs`
   - [ ] `starknet_getStateUpdate`
   - [ ] `starknet_getStorageAt`
-  - [ ] `starknet_getTransactionByHash`
-  - [ ] `starknet_getTransactionByBlockIdAndIndex`
+  - [x] `starknet_getTransactionByHash`
+  - [x] `starknet_getTransactionByBlockIdAndIndex`
   - [ ] `starknet_getTransactionReceipt`
   - [ ] `starknet_getClass`
   - [ ] `starknet_getClassHashAt`
@@ -54,9 +56,9 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
   - [ ] `starknet_addInvokeTransaction`
   - [ ] `starknet_addDeclareTransaction`
   - [ ] `starknet_addDeployAccountTransaction`
-  - [ ] `starknet_traceTransaction`
-  - [ ] `starknet_simulateTransaction`
-  - [ ] `starknet_traceBlockTransactions`
+  - [ ] ~~`starknet_traceTransaction`~~
+  - [ ] ~~`starknet_simulateTransaction`~~
+  - [ ] ~~`starknet_traceBlockTransactions`~~
 
 ### Relevant Links
 
