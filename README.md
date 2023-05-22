@@ -30,6 +30,8 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
   - (see the Design Doc for more details)
   - [x] local ([yakvdb](https://github.com/sergey-melnychuk/yakvdb))
   - [ ] remote (AWS DynamoDB)
+- [ ] Testing
+  - [ ] make seq & eth tests hermetic (httpmock)
 - [x] Single shared context
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
 - [ ] JSON-RPC API methods impl:
