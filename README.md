@@ -16,7 +16,7 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
     - [x] ethereum state
   - [x] event handlers
     - [x] save block
-    - [x] reorg (purge block)
+    - [ ] reorg (purge block)
     - [ ] state update
     - [ ] classes
     - [ ] accounts
