@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 use crate::{
     api::gen::{BlockWithTxs, Felt},
     ctx::Context,
-    db::{BlockAndNumber, Storage},
+    db::{BlockAndIndex, Storage},
     eth::{self, EthApi},
     seq::SeqApi,
     util::{is_open, tx_hash, Waiter, U256, U64},
@@ -162,7 +162,7 @@ pub async fn save_block(
     for (idx, tx) in block.block_body_with_txs.transactions.iter().enumerate() {
         let index = U64::from_u64(idx as u64);
         let block = U256::from_hex(tx_hash(tx).as_ref()).unwrap();
-        let entry = BlockAndNumber::from(block, index);
+        let entry = BlockAndIndex::from(block, index);
 
         let key = U256::from_hex(hash.as_ref())?;
         db.txs_index.write().await.insert(&key, entry)?;
@@ -215,21 +215,26 @@ where
             }
         }
         Event::PullBlock(hash) => {
-            tracing::info!(hash = hash.as_ref(), "Pulling block");
+            tracing::info!(hash = hash.as_ref(), "Doing block");
+            
             let block = {
                 let seq = &ctx.lock().await.seq;
                 pull_block(seq, hash.clone()).await?
             };
-            tracing::info!(
-                number = block.block_header.block_number.as_ref(),
-                hash = block.block_header.block_hash.0.as_ref(),
-                "Block pulled"
-            );
+
+            let block_number = block.block_header.block_number.as_ref().clone() as u64;
+            let block_hash = block.block_header.block_hash.0.clone();
 
             let maybe_event = {
                 let db = &mut ctx.lock().await.db;
                 save_block(db, hash, block).await?
             };
+
+            tracing::info!(
+                number = block_number,
+                hash = block_hash.as_ref(),
+                "Block saved"
+            );
 
             if let Some(event) = maybe_event {
                 return Ok(vec![event]);

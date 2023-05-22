@@ -19,12 +19,12 @@ use crate::{
 pub struct Storage {
     pub blocks: DirRepo<BlockWithTxs>,
     pub blocks_index: Arc<RwLock<Store<U64, U256>>>,
-    pub txs_index: Arc<RwLock<Store<U256, BlockAndNumber>>>,
+    pub txs_index: Arc<RwLock<Store<U256, BlockAndIndex>>>,
 }
 
-pub struct BlockAndNumber([u8; 40]);
+pub struct BlockAndIndex([u8; 40]);
 
-impl BlockAndNumber {
+impl BlockAndIndex {
     pub fn from(block: U256, index: U64) -> Self {
         let mut bytes = [0u8; 40];
         bytes[0..32].copy_from_slice(block.as_ref());
@@ -39,13 +39,13 @@ impl BlockAndNumber {
     }
 }
 
-impl AsRef<[u8]> for BlockAndNumber {
+impl AsRef<[u8]> for BlockAndIndex {
     fn as_ref(&self) -> &[u8] {
         &self.0
     }
 }
 
-impl<'a> From<&'a [u8]> for BlockAndNumber {
+impl<'a> From<&'a [u8]> for BlockAndIndex {
     fn from(value: &'a [u8]) -> Self {
         let mut bytes = [0u8; 40];
         bytes.copy_from_slice(value);

@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
-use tokio::{sync::Mutex, time::Instant};
+use once_cell::sync::Lazy;
+use tokio::{runtime::Runtime, sync::Mutex, time::Instant};
+use yakvdb::typed::DB;
 
 use crate::{
     api::gen::*,
     cfg::Config,
-    db::{Repo, Storage},
+    db::{BlockAndIndex, Repo, Storage},
     eth::EthApi,
     seq::SeqApi,
-    util::tx_hash,
+    util::{tx_hash, U256},
 };
 
 #[derive(Clone, Debug)]
@@ -30,6 +32,8 @@ impl Default for Head {
 pub struct Shared {
     pub head: Head,
 }
+
+const RUNTIME: Lazy<Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
 
 #[derive(Clone)]
 pub struct Context<ETH, SEQ> {
@@ -139,24 +143,31 @@ where
 
     fn getTransactionByHash(
         &self,
-        _transaction_hash: TxnHash,
+        transaction_hash: TxnHash,
     ) -> std::result::Result<Txn, iamgroot::jsonrpc::Error> {
-        /*
-        let key = U256::from_hex(transaction_hash.0.as_ref())
-            .map_err(|e| {
-                iamgroot::jsonrpc::Error::new(
-                    -65000,
-                    format!("Failed to fetch block '{}': {:?}", transaction_hash.0.as_ref(), e),
-                )
-            })?;
+        let key = U256::from_hex(transaction_hash.0.as_ref()).map_err(|e| {
+            iamgroot::jsonrpc::Error::new(
+                -65000,
+                format!(
+                    "Failed to fetch block '{}': {:?}",
+                    transaction_hash.0.as_ref(),
+                    e
+                ),
+            )
+        })?;
 
-        let block_and_number: BlockAndNumber = self.db.txs_index.read().await.lookup(&key)?
+        let block_and_number: BlockAndIndex = RUNTIME
+            .block_on(async { self.db.txs_index.read().await.lookup(&key) })
+            .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
-        */
 
-        // TODO: RPC trait must be async to support `tokio::sync::RwLock`
-
-        not_implemented()
+        let hash = Felt::try_new(&block_and_number.block().into_str())?;
+        self.getTransactionByBlockIdAndIndex(
+            BlockId::BlockHash {
+                block_hash: BlockHash(hash),
+            },
+            Index::try_new(block_and_number.index().into_u64() as i64)?,
+        )
     }
 
     fn getTransactionByBlockIdAndIndex(
