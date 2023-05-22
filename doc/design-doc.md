@@ -103,7 +103,7 @@ Example:
 - CLASS
   - 50kb gzipped JSON each
 
-For B+tree with P=4kb page size as storage and for entry of size X bytes, fitting into a block T = P / X times, thus requiring total number of N entries to have B = N / T + 1 leaf blocks (and thus extra B nodes on top), the formula will look like this:
+For B+tree with P=4kb page size as storage and for entry of size X bytes, fitting into a block T = P / X times, thus requiring total number of N entries to have B = N / T + 1 leaf blocks (and thus extra B nodes on top), the formula for minimum possible size of the index will look like below. Taking into account storage overhead (on average the storage engine keeps each page half-full to avoid frequent split/merge of pages), the real size of index can be a factor of 2.
 
 ```
 P=4096, N=1000, X=?
