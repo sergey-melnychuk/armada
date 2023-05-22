@@ -122,7 +122,6 @@ where
                 break;
             }
         }
-        tokio::time::sleep(delay).await;
     });
 
     Waiter::new(jh, tx)
@@ -161,11 +160,14 @@ pub async fn save_block(
 
     for (idx, tx) in block.block_body_with_txs.transactions.iter().enumerate() {
         let index = U64::from_u64(idx as u64);
-        let block = U256::from_hex(tx_hash(tx).as_ref()).unwrap();
-        let entry = BlockAndIndex::from(block, index);
+        let block = U256::from_hex(hash.as_ref()).unwrap();
+        let val = BlockAndIndex::from(block, index);
 
-        let key = U256::from_hex(hash.as_ref())?;
-        db.txs_index.write().await.insert(&key, entry)?;
+        let key = U256::from_hex(tx_hash(tx).as_ref())?;
+        db.txs_index.write().await.insert(&key, val)?;
+
+        let x = db.txs_index.read().await.lookup(&key)?.unwrap();
+        tracing::warn!(block=x.block().into_str(), index=x.index().into_u64(), "TX");
     }
 
     let parent_hash = block.block_header.parent_hash.0;

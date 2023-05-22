@@ -75,7 +75,7 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("tx");
-        path.push("tx_hash_to_block_hadn_and_tx_index.yak");
+        path.push("tx_hash_to_block_adn_and_tx_index.yak");
         let txs_index = Store::new(&path);
         let txs_index = Arc::new(RwLock::new(txs_index));
 

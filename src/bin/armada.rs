@@ -27,8 +27,8 @@ async fn main() -> anyhow::Result<()> {
 
     let storage_path = &format!("{home}/Temp/armada/data");
     let rpc_bind_addr = "0.0.0.0:9000";
-    let eth_poll_delay = 30 * SECOND;
-    let seq_poll_delay = 120 * SECOND;
+    let eth_poll_delay = 120 * SECOND;
+    let seq_poll_delay = 30 * SECOND;
     let config = Config::new(SECOND, eth_contract_address.to_string());
 
     let eth = EthClient::new(eth_url);
