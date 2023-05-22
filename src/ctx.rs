@@ -8,6 +8,7 @@ use crate::{
     db::{Repo, Storage},
     eth::EthApi,
     seq::SeqApi,
+    util::tx_hash,
 };
 
 #[derive(Clone, Debug)]
@@ -81,21 +82,7 @@ where
             .block_body_with_txs
             .transactions
             .iter()
-            .map(|tx| match tx {
-                Txn::DeclareTxn(DeclareTxn::DeclareTxnV1(txn)) => {
-                    txn.common_txn_properties.transaction_hash.0.clone()
-                }
-                Txn::DeclareTxn(DeclareTxn::DeclareTxnV2(txn)) => txn
-                    .declare_txn_v1
-                    .common_txn_properties
-                    .transaction_hash
-                    .0
-                    .clone(),
-                Txn::DeployAccountTxn(txn) => txn.common_txn_properties.transaction_hash.0.clone(),
-                Txn::DeployTxn(txn) => txn.transaction_hash.0.clone(),
-                Txn::InvokeTxn(txn) => txn.common_txn_properties.transaction_hash.0.clone(),
-                Txn::L1HandlerTxn(txn) => txn.transaction_hash.0.clone(),
-            })
+            .map(|tx| tx_hash(tx).clone())
             .collect::<Vec<_>>();
 
         Ok(GetBlockWithTxHashesResult::BlockWithTxHashes(
@@ -154,15 +141,56 @@ where
         &self,
         _transaction_hash: TxnHash,
     ) -> std::result::Result<Txn, iamgroot::jsonrpc::Error> {
+        /*
+        let key = U256::from_hex(transaction_hash.0.as_ref())
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to fetch block '{}': {:?}", transaction_hash.0.as_ref(), e),
+                )
+            })?;
+
+        let block_and_number: BlockAndNumber = self.db.txs_index.read().await.lookup(&key)?
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+        */
+
+        // TODO: RPC trait must be async to support `tokio::sync::RwLock`
+
         not_implemented()
     }
 
     fn getTransactionByBlockIdAndIndex(
         &self,
-        _block_id: BlockId,
-        _index: Index,
+        block_id: BlockId,
+        index: Index,
     ) -> std::result::Result<Txn, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let index = *index.as_ref() as usize;
+
+        let hash = match block_id {
+            BlockId::BlockHash { block_hash } => block_hash,
+            _ => {
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let key = hash.0.as_ref();
+        let block = self
+            .db
+            .blocks
+            .get(key)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to fetch block '{}': {:?}", key, e),
+                )
+            })?
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+        if let Some(txn) = block.block_body_with_txs.transactions.get(index) {
+            Ok(txn.clone())
+        } else {
+            Err(crate::api::gen::error::BLOCK_NOT_FOUND.into())
+        }
     }
 
     fn getTransactionReceipt(

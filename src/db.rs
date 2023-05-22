@@ -19,6 +19,38 @@ use crate::{
 pub struct Storage {
     pub blocks: DirRepo<BlockWithTxs>,
     pub blocks_index: Arc<RwLock<Store<U64, U256>>>,
+    pub txs_index: Arc<RwLock<Store<U256, BlockAndNumber>>>,
+}
+
+pub struct BlockAndNumber([u8; 40]);
+
+impl BlockAndNumber {
+    pub fn from(block: U256, index: U64) -> Self {
+        let mut bytes = [0u8; 40];
+        bytes[0..32].copy_from_slice(block.as_ref());
+        bytes[32..].copy_from_slice(index.as_ref());
+        Self(bytes)
+    }
+    pub fn block(&self) -> U256 {
+        U256::from(&self.0[0..32])
+    }
+    pub fn index(&self) -> U64 {
+        U64::from(&self.0[32..])
+    }
+}
+
+impl AsRef<[u8]> for BlockAndNumber {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<'a> From<&'a [u8]> for BlockAndNumber {
+    fn from(value: &'a [u8]) -> Self {
+        let mut bytes = [0u8; 40];
+        bytes.copy_from_slice(value);
+        Self(bytes)
+    }
 }
 
 impl Storage {
@@ -37,9 +69,20 @@ impl Storage {
         let blocks_index = Store::new(&path);
         let blocks_index = Arc::new(RwLock::new(blocks_index));
 
+        let mut path = base.to_owned();
+        path.push("tx");
+        fs::create_dir_all(&path).ok();
+
+        let mut path = base.to_owned();
+        path.push("tx");
+        path.push("tx_hash_to_block_hadn_and_tx_index.yak");
+        let txs_index = Store::new(&path);
+        let txs_index = Arc::new(RwLock::new(txs_index));
+
         Self {
             blocks,
             blocks_index,
+            txs_index,
         }
     }
 }

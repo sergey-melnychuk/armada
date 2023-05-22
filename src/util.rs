@@ -5,6 +5,8 @@ use tokio::{
     task::JoinHandle,
 };
 
+use crate::api::gen::{DeclareTxn, Felt, Txn};
+
 #[derive(Clone, Debug, Default)]
 pub struct U256(pub [u8; 32]);
 
@@ -151,6 +153,21 @@ pub fn patch_block(mut value: serde_json::Value) -> serde_json::Value {
 
 pub fn identity<T>(x: T) -> T {
     x
+}
+
+pub fn tx_hash(tx: &Txn) -> &Felt {
+    match tx {
+        Txn::DeclareTxn(DeclareTxn::DeclareTxnV1(txn)) => {
+            &txn.common_txn_properties.transaction_hash.0
+        }
+        Txn::DeclareTxn(DeclareTxn::DeclareTxnV2(txn)) => {
+            &txn.declare_txn_v1.common_txn_properties.transaction_hash.0
+        }
+        Txn::DeployAccountTxn(txn) => &txn.common_txn_properties.transaction_hash.0,
+        Txn::DeployTxn(txn) => &txn.transaction_hash.0,
+        Txn::InvokeTxn(txn) => &txn.common_txn_properties.transaction_hash.0,
+        Txn::L1HandlerTxn(txn) => &txn.transaction_hash.0,
+    }
 }
 
 #[cfg(test)]

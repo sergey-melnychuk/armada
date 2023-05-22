@@ -6,10 +6,10 @@ use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 use crate::{
     api::gen::{BlockWithTxs, Felt},
     ctx::Context,
-    db::Storage,
+    db::{BlockAndNumber, Storage},
     eth::{self, EthApi},
     seq::SeqApi,
-    util::{is_open, Waiter, U256, U64},
+    util::{is_open, tx_hash, Waiter, U256, U64},
 };
 
 pub struct Source<T, C> {
@@ -158,6 +158,15 @@ pub async fn save_block(
     let key = U64::from_u64(number);
     let val = U256::from_hex(hash.as_ref())?;
     db.blocks_index.write().await.insert(&key, val)?;
+
+    for (idx, tx) in block.block_body_with_txs.transactions.iter().enumerate() {
+        let index = U64::from_u64(idx as u64);
+        let block = U256::from_hex(tx_hash(tx).as_ref()).unwrap();
+        let entry = BlockAndNumber::from(block, index);
+
+        let key = U256::from_hex(hash.as_ref())?;
+        db.txs_index.write().await.insert(&key, entry)?;
+    }
 
     let parent_hash = block.block_header.parent_hash.0;
     tracing::debug!(hash = parent_hash.as_ref(), "Parent block");
