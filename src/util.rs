@@ -149,6 +149,10 @@ pub fn patch_block(mut value: serde_json::Value) -> serde_json::Value {
     patch_pending_block(value)
 }
 
+pub fn identity<T>(x: T) -> T {
+    x
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -68,26 +68,41 @@ where
 {
     fn getBlockWithTxHashes(
         &self,
-        _block_id: BlockId,
+        block_id: BlockId,
     ) -> std::result::Result<GetBlockWithTxHashesResult, iamgroot::jsonrpc::Error> {
+        let block = match self.getBlockWithTxs(block_id)? {
+            GetBlockWithTxsResult::BlockWithTxs(block) => block,
+            _ => {
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let txs = block
+            .block_body_with_txs
+            .transactions
+            .iter()
+            .map(|tx| match tx {
+                Txn::DeclareTxn(DeclareTxn::DeclareTxnV1(txn)) => {
+                    txn.common_txn_properties.transaction_hash.0.clone()
+                }
+                Txn::DeclareTxn(DeclareTxn::DeclareTxnV2(txn)) => txn
+                    .declare_txn_v1
+                    .common_txn_properties
+                    .transaction_hash
+                    .0
+                    .clone(),
+                Txn::DeployAccountTxn(txn) => txn.common_txn_properties.transaction_hash.0.clone(),
+                Txn::DeployTxn(txn) => txn.transaction_hash.0.clone(),
+                Txn::InvokeTxn(txn) => txn.common_txn_properties.transaction_hash.0.clone(),
+                Txn::L1HandlerTxn(txn) => txn.transaction_hash.0.clone(),
+            })
+            .collect::<Vec<_>>();
+
         Ok(GetBlockWithTxHashesResult::BlockWithTxHashes(
             BlockWithTxHashes {
-                block_body_with_tx_hashes: BlockBodyWithTxHashes {
-                    transactions: vec![
-                        Felt::try_new("0x1")?,
-                        Felt::try_new("0x2")?,
-                        Felt::try_new("0x3")?,
-                    ],
-                },
-                block_header: BlockHeader {
-                    block_hash: BlockHash(Felt::try_new("0x0")?),
-                    block_number: BlockNumber::try_new(0)?,
-                    new_root: Felt::try_new("0x0")?,
-                    parent_hash: BlockHash(Felt::try_new("0x0")?),
-                    sequencer_address: Felt::try_new("0x0")?,
-                    timestamp: 42,
-                },
-                status: BlockStatus::Pending,
+                block_body_with_tx_hashes: BlockBodyWithTxHashes { transactions: txs },
+                block_header: block.block_header.clone(),
+                status: block.status,
             },
         ))
     }

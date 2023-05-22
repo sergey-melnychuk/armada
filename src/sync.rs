@@ -77,12 +77,12 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
         self.rx.close()
     }
 
-    pub async fn get(&mut self) -> Option<T> {
-        self.rx.recv().await
-    }
-
     pub fn tx(&self) -> mpsc::Sender<T> {
         self.tx.clone()
+    }
+
+    pub async fn get(&mut self) -> Option<T> {
+        self.rx.recv().await
     }
 }
 
@@ -111,6 +111,10 @@ where
                     }
                     Err(e) => {
                         tracing::error!(?event, reason=?e, "Handler failed");
+                        tokio::spawn(async move {
+                            tokio::time::sleep(10 * delay).await;
+                            tx.send(event).await.ok();
+                        });
                     }
                 }
             });
@@ -177,6 +181,15 @@ pub async fn save_block(
     Ok(None)
 }
 
+pub async fn purge_block(
+    _db: &mut Storage,
+    _number: u64,
+    hash: Felt,
+) -> anyhow::Result<Option<Event>> {
+    // TODO: unsave all changes related to the block
+    Ok(Some(Event::PullBlock(hash)))
+}
+
 pub async fn handler<ETH, SEQ>(
     ctx: Arc<Mutex<Context<ETH, SEQ>>>,
     event: Event,
@@ -188,9 +201,12 @@ where
     tracing::debug!(?event, "Handling");
     match event {
         Event::Uptime(seconds) => {
-            tracing::info!(seconds, "uptime");
+            if seconds % 60 == 0 {
+                tracing::info!(seconds, "uptime");
+            }
         }
         Event::PullBlock(hash) => {
+            tracing::info!(hash = hash.as_ref(), "Pulling block");
             let block = {
                 let seq = &ctx.lock().await.seq;
                 pull_block(seq, hash.clone()).await?
@@ -210,8 +226,21 @@ where
                 return Ok(vec![event]);
             }
         }
-        event => {
-            tracing::warn!(?event, "Ignored");
+        Event::PurgeBlock(number, hash) => {
+            tracing::info!(number, hash = hash.as_ref(), "Purging block");
+            let db = &mut ctx.lock().await.db;
+            let maybe_event = purge_block(db, number, hash).await?;
+            if let Some(event) = maybe_event {
+                return Ok(vec![event]);
+            }
+        }
+        Event::Head(number, hash) => {
+            tracing::info!(number, hash = hash.as_ref(), "L2 head");
+        }
+        Event::Ethereum(state) => {
+            let number = state.state_block_number;
+            let hash = state.state_block_hash.as_ref();
+            tracing::info!(number, hash, "L1 head");
         }
     }
 
@@ -251,18 +280,13 @@ where
     let block_number = *latest.block_header.block_number.as_ref() as u64;
     let block_hash = latest.block_header.block_hash.0.clone();
 
-    tracing::info!(
-        number = block_number,
-        hash = block_hash.as_ref(),
-        "Latest block"
-    );
+    tracing::info!(number = block_number, hash = block_hash.as_ref(), "L2 head");
 
-    let block_synced = ctx.lock().await.db.blocks.has(block_hash.as_ref())?;
-    let event = if !block_synced {
-        Event::PullBlock(latest.block_header.parent_hash.0.clone())
+    let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref())?;
+    if !block_exists {
+        let parent_hash = latest.block_header.parent_hash.0.clone();
+        Ok(Some(Event::PullBlock(parent_hash)))
     } else {
-        Event::Head(block_number, block_hash)
-    };
-
-    Ok(Some(event))
+        Ok(Some(Event::Head(block_number, block_hash)))
+    }
 }

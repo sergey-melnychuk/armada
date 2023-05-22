@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     api::gen::{BlockWithTxs, PendingBlockWithTxs},
-    util::{patch_block, patch_pending_block},
+    util::{identity, patch_block, patch_pending_block},
 };
 
 pub mod dto {
@@ -43,6 +43,8 @@ pub mod dto {
     }
 }
 
+const HTTP_OK: u16 = 200;
+
 #[async_trait::async_trait]
 pub trait SeqApi {
     async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<BlockWithTxs>;
@@ -59,30 +61,57 @@ pub trait SeqApi {
 #[async_trait::async_trait]
 impl SeqApi for SeqClient {
     async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<BlockWithTxs> {
-        self.get_block(&format!("blockNumber={block_number}"), patch_block)
-            .await
+        self.get(
+            "/feeder_gateway/get_block",
+            &format!("blockNumber={block_number}"),
+            patch_block,
+        )
+        .await
     }
 
     async fn get_block_by_hash(&self, block_hash: &str) -> anyhow::Result<BlockWithTxs> {
-        self.get_block(&format!("blockHash={}", block_hash), patch_block)
-            .await
+        self.get(
+            "/feeder_gateway/get_block",
+            &format!("blockHash={}", block_hash),
+            patch_block,
+        )
+        .await
     }
 
     async fn get_latest_block(&self) -> anyhow::Result<BlockWithTxs> {
-        self.get_block("blockNumber=latest", patch_block).await
+        self.get(
+            "/feeder_gateway/get_block",
+            "blockNumber=latest",
+            patch_block,
+        )
+        .await
     }
 
     async fn get_pending_block(&self) -> anyhow::Result<PendingBlockWithTxs> {
-        self.get_block("blockNumber=pending", patch_pending_block)
-            .await
+        self.get(
+            "/feeder_gateway/get_block",
+            "blockNumber=pending",
+            patch_pending_block,
+        )
+        .await
     }
 
     async fn get_state_by_number(&self, block_number: u64) -> anyhow::Result<dto::StateUpdate> {
-        self.get_state(&format!("blockNumber={block_number}")).await
+        self.get(
+            "/feeder_gateway/get_state_update",
+            &format!("blockNumber={block_number}"),
+            identity,
+        )
+        .await
     }
 
     async fn get_state_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::StateUpdate> {
-        self.get_state(&format!("blockHash={}", block_hash)).await
+        self.get(
+            "/feeder_gateway/get_state_update",
+            &format!("blockHash={}", block_hash),
+            identity,
+        )
+        .await
     }
 }
 
@@ -103,21 +132,23 @@ impl SeqClient {
         }
     }
 
-    async fn get_block<T: DeserializeOwned>(
+    async fn get<T: DeserializeOwned>(
         &self,
-        arg: &str,
+        path: &str,
+        args: &str,
         map: fn(serde_json::Value) -> serde_json::Value,
     ) -> anyhow::Result<T> {
-        let url = format!("{}/feeder_gateway/get_block?{arg}", self.url);
-        let value: serde_json::Value = self.http.get(&url).send().await?.json().await?;
+        let url = format!("{}{path}?{args}", self.url);
+        let res = self.http.get(&url).send().await?;
+        let status = res.status();
+        let (code, message) = (status.as_u16(), status.as_str());
+        if code != HTTP_OK {
+            tracing::error!(path, code, message, "Gateway call failed");
+            anyhow::bail!(code);
+        }
+        let value: serde_json::Value = res.json().await?;
         let block = serde_json::from_value(map(value))?;
         Ok(block)
-    }
-
-    async fn get_state<T: DeserializeOwned>(&self, arg: &str) -> anyhow::Result<T> {
-        let url = format!("{}/feeder_gateway/get_state_update?{arg}", self.url);
-        let state = self.http.get(&url).send().await?.json().await?;
-        Ok(state)
     }
 }
 
