@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use armada::{api::gen::BlockWithTxs, seq::SeqApi};
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 
 #[derive(Clone)]
 pub struct TestSeq {
@@ -20,16 +20,8 @@ impl TestSeq {
         }
     }
 
-    pub async fn set_latest(&self, latest: BlockWithTxs) {
-        self.inner().await.latest = Some(latest);
-    }
-
-    pub async fn reset_latest(&self) {
-        self.inner().await.latest = None;
-    }
-
-    async fn inner(&self) -> MutexGuard<Inner> {
-        self.inner.lock().await
+    pub async fn latest(&self) -> MappedMutexGuard<Option<BlockWithTxs>> {
+        MutexGuard::map(self.inner.lock().await, |inner| &mut inner.latest)
     }
 }
 
@@ -50,7 +42,8 @@ impl SeqApi for TestSeq {
     }
 
     async fn get_latest_block(&self) -> anyhow::Result<armada::api::gen::BlockWithTxs> {
-        if let Some(latest) = self.inner().await.latest.as_ref() {
+        let latest = self.latest().await;
+        if let Some(latest) = latest.as_ref() {
             return Ok(latest.clone());
         }
         anyhow::bail!("Block not found");

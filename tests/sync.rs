@@ -18,20 +18,17 @@ async fn test_sync_events() -> anyhow::Result<()> {
     let latest_number = *latest.block_header.block_number.as_ref() as u64;
     let latest_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref())?;
 
-    test.ctx().seq.set_latest(latest.clone()).await;
+    *test.ctx.seq.latest().await = Some(latest.clone());
 
-    test.ctx().db.blocks.put(latest_hash.as_ref(), latest)?;
+    test.ctx.db.blocks.put(latest_hash.as_ref(), latest)?;
 
-    test.ctx()
-        .eth
-        .set_state(armada::eth::State {
-            state_block_number: 1,
-            state_root: NumAsHex::try_new("0x2")?,
-            state_block_hash: NumAsHex::try_new("0x3")?,
-        })
-        .await;
+    *test.ctx.eth.state().await = Some(armada::eth::State {
+        state_block_number: 1,
+        state_root: NumAsHex::try_new("0x2")?,
+        state_block_hash: NumAsHex::try_new("0x3")?,
+    });
 
-    let ctx = test.ctx().clone();
+    let ctx = test.ctx.clone();
     let src = Source::new(ctx);
     let d = Duration::from_millis(300);
     src.add("seq", sync::poll_seq, d).await;

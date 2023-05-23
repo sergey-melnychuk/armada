@@ -21,7 +21,7 @@ pub struct Test {
     url: String,
     http: reqwest::Client,
     server: Waiter,
-    ctx: Context<TestEth, TestSeq>,
+    pub ctx: Context<TestEth, TestSeq>,
 }
 
 impl Test {
@@ -52,10 +52,7 @@ impl Test {
         }
     }
 
-    pub fn ctx(&self) -> &Context<TestEth, TestSeq> {
-        &self.ctx
-    }
-
+    #[allow(dead_code)] // IDK why but clippy thinks this method is a dead code (it is not)
     pub async fn rpc<T: Serialize, R: DeserializeOwned>(&self, req: T) -> anyhow::Result<R> {
         let mut res: jsonrpc::Response = self
             .http
