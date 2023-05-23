@@ -1,0 +1,2 @@
+#!/bin/sh
+kill -TERM $(ps -aux | grep armada | head -n 1 | tr -s ' ' | cut -d ' ' -f 2)
