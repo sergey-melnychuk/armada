@@ -10,7 +10,7 @@ use crate::{
     db::{BlockAndIndex, Repo, Storage},
     eth::EthApi,
     seq::SeqApi,
-    util::{tx_hash, U256},
+    util::{get_state_update, tx_hash, U256},
 };
 
 #[derive(Clone, Debug)]
@@ -110,7 +110,7 @@ where
         };
 
         let key = hash.0.as_ref();
-        let block = self
+        let mut block = self
             .db
             .blocks
             .get(key)
@@ -121,15 +121,37 @@ where
                 )
             })?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+        block.receipts.clear();
 
         Ok(GetBlockWithTxsResult::BlockWithTxs(block))
     }
 
     fn getStateUpdate(
         &self,
-        _block_id: BlockId,
+        block_id: BlockId,
     ) -> std::result::Result<GetStateUpdateResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let hash = match block_id {
+            BlockId::BlockHash { block_hash } => block_hash,
+            _ => {
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let key = hash.0.as_ref();
+        let state = self
+            .db
+            .states
+            .get(key)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to fetch block '{}': {:?}", key, e),
+                )
+            })?
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+        let state_update = get_state_update(state);
+        Ok(GetStateUpdateResult::StateUpdate(state_update))
     }
 
     fn getStorageAt(
