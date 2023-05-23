@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_encode_ethereum_call_data() {
-        for (input, expected) in vec![
+        for (input, expected) in [
             ("stateRoot()", "0x9588eca2"),
             ("stateBlockHash()", "0x382d83e3"),
             ("stateBlockNumber()", "0x35befa5d"),
