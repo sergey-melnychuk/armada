@@ -10,7 +10,7 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
 - [x] Ethereum client
 - [ ] Sync
   - [x] event producers
-    - [x] "next" block
+    - [x] parent block
     - [x] pending block
     - [x] latest block
     - [x] ethereum state
@@ -18,10 +18,9 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
     - [x] save block (+index)
     - [x] index transactions
     - [ ] events
-      - requires extending existing `BlockWithTxs` to match `transaction_receipts`
     - [ ] reorg (purge block)
     - [ ] state update
-      - [ ] TODO complete dto mapping
+      - [ ] **TODO** complete dto mapping
       - [ ] store index
       - [ ] nonce index
     - [ ] classes
@@ -36,9 +35,11 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
   - (see the Design Doc for more details)
   - [x] local ([yakvdb](https://github.com/sergey-melnychuk/yakvdb))
   - [ ] remote (AWS DynamoDB)
+  - [ ] snapshot (for a range of blocks)
 - [ ] Testing
-  - [ ] make seq & eth tests hermetic (httpmock)
+  - [ ] make seq & eth tests hermetic ([httpmock](https://docs.rs/httpmock/latest/httpmock/))
 - [x] Single shared context
+  - effectively a manual "dependency injection"
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
 - [ ] JSON-RPC API methods impl:
   - [x] `starknet_getBlockWithTxHashes`
