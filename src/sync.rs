@@ -3,14 +3,16 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
+use crate::db::Repo;
 use crate::{
     api::gen::{BlockWithTxs, Felt},
     ctx::Context,
     db::{BlockAndIndex, Storage},
     eth::{self, EthApi},
-    seq::SeqApi,
+    seq::{dto, SeqApi},
     util::{is_open, tx_hash, Waiter, U256, U64},
 };
+use yakvdb::typed::DB;
 
 pub struct Source<T, C> {
     tx: mpsc::Sender<T>,
@@ -136,11 +138,57 @@ pub enum Event {
     Uptime(u64), // TODO: remove (it was added just as an example)
 }
 
-pub async fn pull_block<SEQ: SeqApi + Send + Sync + Clone + 'static>(
-    seq: &SEQ,
+pub async fn pull_block<SEQ, ETH>(
+    ctx: Arc<Mutex<Context<ETH, SEQ>>>,
     hash: Felt,
-) -> anyhow::Result<BlockWithTxs> {
-    seq.get_block_by_hash(hash.as_ref()).await
+    events: &mut Vec<Event>,
+) -> anyhow::Result<()>
+where
+    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi + Send + Sync + Clone + 'static,
+{
+    tracing::debug!(hash = hash.as_ref(), "Pulling block");
+
+    let block = {
+        let seq = &ctx.lock().await.seq;
+        seq.get_block_by_hash(hash.as_ref()).await?
+    };
+    let block_number = block.block_header.block_number.as_ref().clone() as u64;
+    let block_hash = block.block_header.block_hash.0.clone();
+
+    let event = {
+        let db = &mut ctx.lock().await.db;
+        save_block(db, hash.clone(), block).await?
+    };
+    if let Some(event) = event {
+        events.push(event);
+    }
+
+    tracing::info!(
+        number = block_number,
+        hash = block_hash.as_ref(),
+        "Block saved"
+    );
+
+    let state = {
+        let seq = &ctx.lock().await.seq;
+        seq.get_state_by_hash(hash.as_ref()).await?
+    };
+    let event = {
+        let db = &mut ctx.lock().await.db;
+        save_state(db, hash.clone(), state).await?
+    };
+    if let Some(event) = event {
+        events.push(event);
+    }
+
+    tracing::info!(
+        number = block_number,
+        hash = block_hash.as_ref(),
+        "State saved"
+    );
+
+    Ok(())
 }
 
 pub async fn save_block(
@@ -148,9 +196,6 @@ pub async fn save_block(
     hash: Felt,
     block: BlockWithTxs,
 ) -> anyhow::Result<Option<Event>> {
-    use crate::db::Repo;
-    use yakvdb::typed::DB;
-
     let number = *block.block_header.block_number.as_ref() as u64;
     tokio::task::block_in_place(|| db.blocks.put(hash.as_ref(), block.clone()))?;
 
@@ -190,6 +235,20 @@ pub async fn save_block(
     Ok(None)
 }
 
+pub async fn save_state(
+    db: &mut Storage,
+    hash: Felt,
+    state: dto::StateUpdate,
+) -> anyhow::Result<Option<Event>> {
+    tokio::task::block_in_place(|| db.states.put(hash.as_ref(), state))?;
+
+    // TODO: index nonces
+    // TODO: indes stores
+    // TODO: index events
+
+    Ok(None)
+}
+
 pub async fn purge_block(
     _db: &mut Storage,
     _number: u64,
@@ -208,6 +267,7 @@ where
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
     tracing::debug!(?event, "Handling");
+    let mut events = Vec::new();
     match event {
         Event::Uptime(seconds) => {
             if seconds % 60 == 0 {
@@ -215,37 +275,14 @@ where
             }
         }
         Event::PullBlock(hash) => {
-            tracing::debug!(hash = hash.as_ref(), "Pulling block");
-            
-            let block = {
-                let seq = &ctx.lock().await.seq;
-                pull_block(seq, hash.clone()).await?
-            };
-
-            let block_number = block.block_header.block_number.as_ref().clone() as u64;
-            let block_hash = block.block_header.block_hash.0.clone();
-
-            let maybe_event = {
-                let db = &mut ctx.lock().await.db;
-                save_block(db, hash, block).await?
-            };
-
-            tracing::info!(
-                number = block_number,
-                hash = block_hash.as_ref(),
-                "Block saved"
-            );
-
-            if let Some(event) = maybe_event {
-                return Ok(vec![event]);
-            }
+            pull_block(ctx.clone(), hash, &mut events).await?;
         }
         Event::PurgeBlock(number, hash) => {
             tracing::info!(number, hash = hash.as_ref(), "Purging block");
             let db = &mut ctx.lock().await.db;
             let maybe_event = purge_block(db, number, hash).await?;
             if let Some(event) = maybe_event {
-                return Ok(vec![event]);
+                events.push(event);
             }
         }
         Event::Head(number, hash) => {
@@ -258,7 +295,7 @@ where
         }
     }
 
-    Ok(vec![])
+    Ok(events)
 }
 
 pub async fn poll_uptime<ETH, SEQ>(
@@ -288,7 +325,6 @@ where
     ETH: EthApi + Send + Sync + Clone + 'static,
     SEQ: SeqApi + Send + Sync + Clone + 'static,
 {
-    use crate::db::Repo;
     let latest = ctx.lock().await.seq.get_latest_block().await?;
 
     let block_number = *latest.block_header.block_number.as_ref() as u64;
