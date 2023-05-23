@@ -15,9 +15,15 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
     - [x] latest block
     - [x] ethereum state
   - [x] event handlers
-    - [x] save block
+    - [x] save block (+index)
+    - [x] index transactions
+    - [ ] events
+      - requires extending existing `BlockWithTxs` to match `transaction_receipts`
     - [ ] reorg (purge block)
     - [ ] state update
+      - [ ] TODO complete dto mapping
+      - [ ] store index
+      - [ ] nonce index
     - [ ] classes
     - [ ] accounts
   - [x] sync testkit
