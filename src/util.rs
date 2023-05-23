@@ -5,7 +5,10 @@ use tokio::{
     task::JoinHandle,
 };
 
-use crate::api::gen::{DeclareTxn, Felt, Txn};
+use crate::{
+    api::gen::{BlockHash, DeclareTxn, Felt, PendingStateUpdate, StateDiff, StateUpdate, Txn},
+    seq::dto,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct U256(pub [u8; 32]);
@@ -167,6 +170,24 @@ pub fn tx_hash(tx: &Txn) -> &Felt {
         Txn::DeployTxn(txn) => &txn.transaction_hash.0,
         Txn::InvokeTxn(txn) => &txn.common_txn_properties.transaction_hash.0,
         Txn::L1HandlerTxn(txn) => &txn.transaction_hash.0,
+    }
+}
+
+pub fn get_state_update(state: dto::StateUpdate) -> StateUpdate {
+    StateUpdate {
+        block_hash: BlockHash(state.block_hash),
+        new_root: state.new_root,
+        pending_state_update: PendingStateUpdate {
+            old_root: state.old_root,
+            state_diff: StateDiff {
+                declared_classes: Default::default(),   // TODO: map from dto
+                deployed_contracts: Default::default(), // TODO: map from dto
+                deprecated_declared_classes: Default::default(), // TODO: map from dto
+                nonces: Default::default(),             // TODO: map from dto
+                replaced_classes: Default::default(),   // TODO: map from dto
+                storage_diffs: Default::default(),      // TODO: map from dto
+            },
+        },
     }
 }
 
