@@ -82,7 +82,7 @@ impl Storage {
         let txs_index = Arc::new(RwLock::new(txs_index));
 
         let mut path = base.to_owned();
-        path.push("states");
+        path.push("state");
         let states = DirRepo::new(&path);
 
         Self {
