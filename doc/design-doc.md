@@ -47,9 +47,20 @@ Each entity has natural primary key, being it a hash, block number or an address
 
 ### Buckets
 
-- /BLOCK/0x{hash}.json.gzip
-- /STATE/0x{hash}.json.gzip
-- /CLASS/0x{hash}.json.gzip
+- /BLOCK
+  - 0x{hash}.json.gzip
+  - block.yak (block number to block hash)
+- /TX
+  - index.yak (tx hash to block hash + tx index)
+- /EVENT
+  - event.yak (contract addr, event key, block number to event data)
+- /STATE
+  - 0x{hash}.json.gzip
+  - nonce.yak (contract addr, block number to nonce value)
+  - index.yak (contract addr, key, block number to state value)
+- /CLASS
+  - 0x{hash}.json.gzip
+  - class.yak (contract addr, block number to class hash)
 
 ### Indices
 
