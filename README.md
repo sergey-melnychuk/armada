@@ -1,6 +1,8 @@
-# armada
+# Armada
 
-WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
+Armada is a WIP PoC impl of [Starknet](https://www.starknet.io/en) full node.
+
+And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
 [Design Doc](/doc/design-doc.md)
 
@@ -32,7 +34,6 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
   - [ ] async?
   - [ ] remote (AWS S3)
 - [x] Indices
-  - (see the Design Doc for more details)
   - [x] local ([yakvdb](https://github.com/sergey-melnychuk/yakvdb))
   - [ ] remote (AWS DynamoDB)
   - [ ] snapshot (for a range of blocks)
