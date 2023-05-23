@@ -10,7 +10,7 @@ pub mod dto {
 
     use crate::api::gen::Felt;
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct StateUpdate {
         pub block_hash: Felt,
         pub new_root: Felt,
@@ -18,7 +18,7 @@ pub mod dto {
         pub state_diff: StorageDiff,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct StorageDiff {
         #[serde(with = "tuple_vec_map")]
         pub storage_diffs: Vec<(Felt, Vec<KeyValue>)>,
@@ -30,13 +30,13 @@ pub mod dto {
         pub replaced_classes: Vec<serde_json::Value>,       // TODO: match to a DTO
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct KeyValue {
         pub key: Felt,
         pub value: Felt,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct DeployedContract {
         pub address: Felt,
         pub class_hash: Felt,
@@ -45,6 +45,7 @@ pub mod dto {
 
 const HTTP_OK: u16 = 200;
 
+// TODO: add trait bounds? `SeqApi: Send + Sync + Clone + 'static`
 #[async_trait::async_trait]
 pub trait SeqApi {
     async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<BlockWithTxs>;
