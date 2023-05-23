@@ -12,6 +12,7 @@ use yakvdb::typed::{Store, DB};
 
 use crate::{
     api::gen::BlockWithTxs,
+    seq::dto,
     util::{U256, U64},
 };
 
@@ -20,6 +21,7 @@ pub struct Storage {
     pub blocks: DirRepo<BlockWithTxs>,
     pub blocks_index: Arc<RwLock<Store<U64, U256>>>,
     pub txs_index: Arc<RwLock<Store<U256, BlockAndIndex>>>,
+    pub states: DirRepo<dto::StateUpdate>,
 }
 
 pub struct BlockAndIndex([u8; 40]);
@@ -65,7 +67,7 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("block");
-        path.push("block_number_to_block_hash.yak");
+        path.push("index.yak");
         let blocks_index = Store::new(&path);
         let blocks_index = Arc::new(RwLock::new(blocks_index));
 
@@ -75,14 +77,19 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("tx");
-        path.push("tx_hash_to_block_adn_and_tx_index.yak");
+        path.push("index.yak");
         let txs_index = Store::new(&path);
         let txs_index = Arc::new(RwLock::new(txs_index));
+
+        let mut path = base.to_owned();
+        path.push("states");
+        let states = DirRepo::new(&path);
 
         Self {
             blocks,
             blocks_index,
             txs_index,
+            states,
         }
     }
 }
