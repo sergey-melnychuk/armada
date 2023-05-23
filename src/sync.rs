@@ -162,10 +162,9 @@ pub async fn save_block(
         let index = U64::from_u64(idx as u64);
         let block = U256::from_hex(hash.as_ref()).unwrap();
 
-        let _val = BlockAndIndex::from(block, index);
+        let val = BlockAndIndex::from(block, index);
         let key = U256::from_hex(tx_hash(tx).as_ref())?;
-        // TODO: panics due to a bug https://github.com/sergey-melnychuk/yakvdb/issues/4
-        // db.txs_index.write().await.insert(&key, val)?;
+        db.txs_index.write().await.insert(&key, val)?;
         tracing::debug!(hash = key.into_str(), "TX saved");
     }
 
@@ -216,7 +215,7 @@ where
             }
         }
         Event::PullBlock(hash) => {
-            tracing::info!(hash = hash.as_ref(), "Doing block");
+            tracing::debug!(hash = hash.as_ref(), "Pulling block");
             
             let block = {
                 let seq = &ctx.lock().await.seq;
