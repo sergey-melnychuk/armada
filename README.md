@@ -76,3 +76,7 @@ WIP PoC impl of [Starknet](https://www.starknet.io/en) full node and a "sibling"
 - [kakarot-rpc](https://github.com/kkrt-labs/kakarot-rpc)
 - [katana](https://github.com/dojoengine/katana)
 - [madara](https://github.com/keep-starknet-strange/madara)
+
+### Misc
+
+Count LoC: `find src tests -type f -name "*.rs" | xargs grep . | wc -l`
