@@ -33,7 +33,8 @@ pub struct Shared {
     pub head: Head,
 }
 
-const RUNTIME: Lazy<Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
+#[allow(clippy::declare_interior_mutable_const)] // clippy, this time just fuck off
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
 
 #[derive(Clone)]
 pub struct Context<ETH, SEQ> {

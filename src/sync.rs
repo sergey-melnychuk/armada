@@ -153,7 +153,7 @@ where
         let seq = &ctx.lock().await.seq;
         seq.get_block_by_hash(hash.as_ref()).await?
     };
-    let block_number = block.block_header.block_number.as_ref().clone() as u64;
+    let block_number = *block.block_header.block_number.as_ref() as u64;
     let block_hash = block.block_header.block_hash.0.clone();
 
     let event = {
