@@ -768,7 +768,17 @@ pub mod gen {
                     if !value.starts_with("0x") {
                         format!("0x{value}")
                     } else {
+                        // Workaround to support invalid Felts returned by the gateway.
                         value
+                            .strip_prefix("0x0")
+                            .map(|hex| {
+                                if hex.is_empty() {
+                                    value.clone()
+                                } else {
+                                    format!("0x{hex}")
+                                }
+                            })
+                            .unwrap_or(value)
                     }
                 };
 
