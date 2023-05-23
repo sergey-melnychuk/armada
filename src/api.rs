@@ -755,33 +755,34 @@ pub mod gen {
         static FELT_REGEX: Lazy<Regex> =
             Lazy::new(|| Regex::new("^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$").unwrap());
 
+        // Workaround to support invalid Felts returned by the gateway.
+        fn fix(value: &str) -> String {
+            let value = if value.starts_with('0') && !value.starts_with("0x") {
+                value.chars().skip_while(|c| c == &'0').collect::<String>()
+            } else {
+                value.to_string()
+            };
+            if !value.starts_with("0x") {
+                format!("0x{value}")
+            } else {
+                value
+                    .strip_prefix("0x0")
+                    .map(|hex| {
+                        if hex.is_empty() {
+                            value.clone()
+                        } else {
+                            let hex =
+                                hex.chars().skip_while(|c| c == &'0').collect::<String>();
+                            format!("0x{hex}")
+                        }
+                    })
+                    .unwrap_or(value)
+            }
+        }
+
         impl Felt {
             pub fn try_new(value: &str) -> Result<Self, jsonrpc::Error> {
-                // Workaround to enable seamless support of `feeder_gateway.block`,
-                // which does not have "0x" prefix and can have leading zeroes.
-                let value = {
-                    let value = if value.starts_with('0') && !value.starts_with("0x") {
-                        value.chars().skip_while(|c| c == &'0').collect::<String>()
-                    } else {
-                        value.to_string()
-                    };
-                    if !value.starts_with("0x") {
-                        format!("0x{value}")
-                    } else {
-                        // Workaround to support invalid Felts returned by the gateway.
-                        value
-                            .strip_prefix("0x0")
-                            .map(|hex| {
-                                if hex.is_empty() {
-                                    value.clone()
-                                } else {
-                                    format!("0x{hex}")
-                                }
-                            })
-                            .unwrap_or(value)
-                    }
-                };
-
+                let value = fix(value);
                 if FELT_REGEX.is_match(&value) {
                     Ok(Self(value))
                 } else {
