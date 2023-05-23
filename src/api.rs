@@ -137,6 +137,21 @@ pub mod gen {
         #[serde(flatten)]
         pub block_header: BlockHeader,
         pub status: BlockStatus,
+
+        #[serde(default)]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        #[serde(rename = "transaction_receipts")]
+        pub receipts: Vec<TxnReceiptSummary>,
+    }
+
+    // Utility DTO to match response from the gateway
+    #[derive(Clone, Debug, Deserialize, Serialize)]
+    pub struct TxnReceiptSummary {
+        pub transaction_index: i64,
+        pub transaction_hash: TxnHash,
+        pub l2_to_l1_messages: Vec<MsgToL1>,
+        pub events: Vec<Event>,
+        pub actual_fee: Felt,
     }
 
     // object: 'BLOCK_WITH_TX_HASHES'
