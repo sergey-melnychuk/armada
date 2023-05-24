@@ -22,7 +22,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
     - [ ] events
     - [ ] reorg (purge block)
     - [ ] state update
-      - [ ] **TODO** complete dto mapping
+      - [x] dto mapping
       - [ ] store index
       - [ ] nonce index
     - [ ] classes
