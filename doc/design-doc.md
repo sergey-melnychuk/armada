@@ -257,4 +257,7 @@ curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getB
 
 $ curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses
 {"GpsStatementVerifier": "0x8f97970aC5a9aa8D130d35146F5b59c4aef57963", "Starknet": "0xde29d060D45901Fb19ED6C6e959EB22d8626708e"}
+
+$ curl https://alpha-mainnet.starknet.io/feeder_gateway/get_contract_addresses
+{"Starknet": "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4", "GpsStatementVerifier": "0x47312450B3Ac8b5b8e247a6bB6d523e7605bDb60"}
 ```
