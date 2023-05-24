@@ -45,7 +45,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 - [ ] JSON-RPC API methods impl:
   - [x] `starknet_getBlockWithTxHashes`
   - [x] `starknet_getBlockWithTxs`
-  - [ ] `starknet_getStateUpdate`
+  - [x] `starknet_getStateUpdate`
   - [ ] `starknet_getStorageAt`
   - [x] `starknet_getTransactionByHash`
   - [x] `starknet_getTransactionByBlockIdAndIndex`
