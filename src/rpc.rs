@@ -46,8 +46,8 @@ async fn handle_request<ETH, SEQ>(
     Json(req): Json<Request>,
 ) -> Result<impl IntoResponse, RpcError>
 where
-    ETH: EthApi + Clone + Send + Sync + 'static,
-    SEQ: SeqApi + Clone + Send + Sync + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     match req {
         Request::Single(req) => {
@@ -74,8 +74,8 @@ where
 
 pub async fn serve<ETH, SEQ>(addr: &SocketAddr, ctx: Context<ETH, SEQ>) -> (SocketAddr, Waiter)
 where
-    ETH: EthApi + Send + Sync + Clone + 'static,
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     let app = Router::new()
         .route("/rpc/v0.3", post(handle_request))

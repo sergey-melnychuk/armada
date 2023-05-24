@@ -7,9 +7,8 @@ pub struct State {
     pub state_block_number: u64,
 }
 
-// TODO: add trait bounds? `EthApi: Send + Sync + Clone + 'static`
 #[async_trait::async_trait]
-pub trait EthApi {
+pub trait EthApi: Send + Sync + Clone + 'static {
     async fn get_state(&self, address: &str) -> anyhow::Result<State>;
 }
 

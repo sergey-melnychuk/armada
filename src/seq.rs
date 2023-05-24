@@ -57,9 +57,8 @@ pub mod dto {
 
 const HTTP_OK: u16 = 200;
 
-// TODO: add trait bounds? `SeqApi: Send + Sync + Clone + 'static`
 #[async_trait::async_trait]
-pub trait SeqApi {
+pub trait SeqApi: Send + Sync + Clone + 'static {
     async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<BlockWithTxs>;
     async fn get_block_by_hash(&self, block_hash: &str) -> anyhow::Result<BlockWithTxs>;
     async fn get_latest_block(&self) -> anyhow::Result<BlockWithTxs>;

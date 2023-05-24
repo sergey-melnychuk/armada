@@ -90,8 +90,8 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
 
 pub async fn sync<ETH, SEQ, F, R>(source: Source<Event, Context<ETH, SEQ>>, handler: F) -> Waiter
 where
-    ETH: EthApi + Send + Sync + Clone + 'static,
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
     F: Fn(Arc<Mutex<Context<ETH, SEQ>>>, Event) -> R + Copy + Send + Sync + 'static,
     R: Future<Output = anyhow::Result<Vec<Event>>> + Send + 'static,
 {
@@ -144,8 +144,8 @@ pub async fn pull_block<SEQ, ETH>(
     events: &mut Vec<Event>,
 ) -> anyhow::Result<()>
 where
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
-    ETH: EthApi + Send + Sync + Clone + 'static,
+    SEQ: SeqApi,
+    ETH: EthApi,
 {
     tracing::debug!(hash = hash.as_ref(), "Pulling block");
 
@@ -263,8 +263,8 @@ pub async fn handler<ETH, SEQ>(
     event: Event,
 ) -> anyhow::Result<Vec<Event>>
 where
-    ETH: EthApi + Send + Sync + Clone + 'static,
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     tracing::debug!(?event, "Handling");
     let mut events = Vec::new();
@@ -302,8 +302,8 @@ pub async fn poll_uptime<ETH, SEQ>(
     ctx: Arc<Mutex<Context<ETH, SEQ>>>,
 ) -> anyhow::Result<Option<Event>>
 where
-    ETH: EthApi + Send + Sync + Clone + 'static,
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     let instant = ctx.lock().await.since;
     let seconds = instant.elapsed().as_secs();
@@ -312,8 +312,8 @@ where
 
 pub async fn poll_eth<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
 where
-    ETH: EthApi + Send + Sync + Clone + 'static,
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     let addr = ctx.lock().await.config.ethereum_contract_address.clone();
     let state = ctx.lock().await.eth.get_state(&addr).await?;
@@ -322,8 +322,8 @@ where
 
 pub async fn poll_seq<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
 where
-    ETH: EthApi + Send + Sync + Clone + 'static,
-    SEQ: SeqApi + Send + Sync + Clone + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     let latest = ctx.lock().await.seq.get_latest_block().await?;
 

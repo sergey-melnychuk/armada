@@ -48,8 +48,8 @@ pub struct Context<ETH, SEQ> {
 
 impl<ETH, SEQ> Context<ETH, SEQ>
 where
-    ETH: EthApi + Send + Sync + 'static,
-    SEQ: SeqApi + Send + Sync + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage, config: Config) -> Self {
         Self {
@@ -69,8 +69,8 @@ where
 
 impl<ETH, SEQ> crate::api::gen::Rpc for Context<ETH, SEQ>
 where
-    ETH: EthApi + Send + Sync + 'static,
-    SEQ: SeqApi + Send + Sync + 'static,
+    ETH: EthApi,
+    SEQ: SeqApi,
 {
     fn getBlockWithTxHashes(
         &self,
