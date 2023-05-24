@@ -771,8 +771,7 @@ pub mod gen {
                         if hex.is_empty() {
                             value.clone()
                         } else {
-                            let hex =
-                                hex.chars().skip_while(|c| c == &'0').collect::<String>();
+                            let hex = hex.chars().skip_while(|c| c == &'0').collect::<String>();
                             format!("0x{hex}")
                         }
                     })
