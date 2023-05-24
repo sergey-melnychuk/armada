@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
 
     let eth_contract_address = "0xde29d060D45901Fb19ED6C6e959EB22d8626708e";
 
-    let storage_path = &format!("{home}/Temp/armada/data");
+    let storage_path = &format!("{home}/Temp/armada/testnet");
     let rpc_bind_addr = "0.0.0.0:9000";
     let eth_poll_delay = 120 * SECOND;
     let seq_poll_delay = 30 * SECOND;
