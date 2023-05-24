@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     api::gen::{BlockWithTxs, PendingBlockWithTxs},
-    util::{identity, patch_block, patch_pending_block},
+    util::{http, identity, patch_block, patch_pending_block},
 };
 
 pub mod dto {
@@ -54,8 +54,6 @@ pub mod dto {
         pub class_hash: Felt,
     }
 }
-
-const HTTP_OK: u16 = 200;
 
 #[async_trait::async_trait]
 pub trait SeqApi: Send + Sync + Clone + 'static {
@@ -154,7 +152,7 @@ impl SeqClient {
         let res = self.http.get(&url).send().await?;
         let status = res.status();
         let (code, message) = (status.as_u16(), status.as_str());
-        if code != HTTP_OK {
+        if code != http::HTTP_OK {
             tracing::error!(path, code, message, "Gateway call failed");
             anyhow::bail!(code);
         }

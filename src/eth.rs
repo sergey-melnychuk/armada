@@ -1,4 +1,4 @@
-use crate::api::gen::NumAsHex;
+use crate::{api::gen::NumAsHex, util::http};
 
 #[derive(Clone, Debug)]
 pub struct State {
@@ -87,15 +87,16 @@ impl EthClient {
     }
 
     async fn call_ethereum(&self, value: serde_json::Value) -> anyhow::Result<serde_json::Value> {
-        let response: serde_json::Value = self
-            .http
-            .post(&self.url)
-            .json(&value)
-            .send()
-            .await?
-            .json()
-            .await?;
-        // TODO: report error if any
+        let res = self.http.post(&self.url).json(&value).send().await?;
+
+        let status = res.status();
+        let (code, message) = (status.as_u16(), status.as_str());
+        if code != http::HTTP_OK {
+            tracing::error!(code, message, "Ethereum call failed");
+            anyhow::bail!(code);
+        }
+
+        let response: serde_json::Value = res.json().await?;
         Ok(response["result"].clone())
     }
 }

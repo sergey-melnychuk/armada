@@ -14,6 +14,10 @@ use crate::{
     seq::dto::{self, DeclaredClass, DeployedContract, ReplacedClass},
 };
 
+pub mod http {
+    pub const HTTP_OK: u16 = 200;
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct U256(pub [u8; 32]);
 
