@@ -231,6 +231,7 @@ where
         &self,
         _transaction_hash: TxnHash,
     ) -> std::result::Result<TxnReceipt, iamgroot::jsonrpc::Error> {
+        // TODO: impl fn map_txn_receipt(txn: Txn, receipt: TxnReceiptSummary) -> TxnReceipt
         not_implemented()
     }
 
