@@ -135,7 +135,7 @@ pub enum Event {
     Head(u64, Felt),
     PullBlock(Felt),
     PurgeBlock(u64, Felt),
-    Uptime(u64), // TODO: remove (it was added just as an example)
+    Uptime { seconds: u64 },
 }
 
 pub async fn pull_block<SEQ, ETH>(
@@ -269,7 +269,7 @@ where
     tracing::debug!(?event, "Handling");
     let mut events = Vec::new();
     match event {
-        Event::Uptime(seconds) => {
+        Event::Uptime { seconds} => {
             if seconds % 60 == 0 {
                 tracing::info!(seconds, "uptime");
             }
@@ -307,7 +307,7 @@ where
 {
     let instant = ctx.lock().await.since;
     let seconds = instant.elapsed().as_secs();
-    Ok(Some(Event::Uptime(seconds)))
+    Ok(Some(Event::Uptime { seconds }))
 }
 
 pub async fn poll_eth<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
