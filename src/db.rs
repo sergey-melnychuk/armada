@@ -22,6 +22,7 @@ pub struct Storage {
     pub blocks_index: Arc<RwLock<Store<U64, U256>>>,
     pub txs_index: Arc<RwLock<Store<U256, BlockAndIndex>>>,
     pub states: DirRepo<dto::StateUpdate>,
+    pub nonces_index: Arc<RwLock<Store<AddressAndNumber, U256>>>,
 }
 
 pub struct BlockAndIndex([u8; 40]);
@@ -48,6 +49,37 @@ impl AsRef<[u8]> for BlockAndIndex {
 }
 
 impl<'a> From<&'a [u8]> for BlockAndIndex {
+    fn from(value: &'a [u8]) -> Self {
+        let mut bytes = [0u8; 40];
+        bytes.copy_from_slice(value);
+        Self(bytes)
+    }
+}
+
+pub struct AddressAndNumber([u8; 40]);
+
+impl AddressAndNumber {
+    pub fn from(address: U256, number: U64) -> Self {
+        let mut bytes = [0u8; 40];
+        bytes[0..32].copy_from_slice(address.as_ref());
+        bytes[32..].copy_from_slice(number.as_ref());
+        Self(bytes)
+    }
+    pub fn address(&self) -> U256 {
+        U256::from(&self.0[0..32])
+    }
+    pub fn number(&self) -> U64 {
+        U64::from(&self.0[32..])
+    }
+}
+
+impl AsRef<[u8]> for AddressAndNumber {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<'a> From<&'a [u8]> for AddressAndNumber {
     fn from(value: &'a [u8]) -> Self {
         let mut bytes = [0u8; 40];
         bytes.copy_from_slice(value);
@@ -85,11 +117,18 @@ impl Storage {
         path.push("state");
         let states = DirRepo::new(&path);
 
+        let mut path = base.to_owned();
+        path.push("state");
+        path.push("nonce.yak");
+        let nonces_index = Store::new(&path);
+        let nonces_index = Arc::new(RwLock::new(nonces_index));
+
         Self {
             blocks,
             blocks_index,
             txs_index,
             states,
+            nonces_index,
         }
     }
 }

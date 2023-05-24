@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
-use crate::db::Repo;
+use crate::db::{AddressAndNumber, Repo};
 use crate::{
     api::gen::{BlockWithTxs, Felt},
     ctx::Context,
@@ -176,7 +176,7 @@ where
     };
     let event = {
         let db = &mut ctx.lock().await.db;
-        save_state(db, hash.clone(), state).await?
+        save_state(db, hash.clone(), block_number, state).await?
     };
     if let Some(event) = event {
         events.push(event);
@@ -213,6 +213,23 @@ pub async fn save_block(
         tracing::debug!(hash = key.into_str(), "TX saved");
     }
 
+    for receipt in &block.receipts {
+        for event in &receipt.events {
+            let address = &event.from_address.0;
+            let keys = &event.event_content.keys;
+            let data = &event.event_content.data;
+
+            // TODO: index events
+
+            tracing::debug!(
+                address = address.as_ref(),
+                keys = keys.len(),
+                data = data.len(),
+                "Event saved"
+            );
+        }
+    }
+
     let parent_hash = block.block_header.parent_hash.0;
     tracing::debug!(hash = parent_hash.as_ref(), "Parent block");
 
@@ -238,13 +255,42 @@ pub async fn save_block(
 pub async fn save_state(
     db: &mut Storage,
     hash: Felt,
+    number: u64,
     state: dto::StateUpdate,
 ) -> anyhow::Result<Option<Event>> {
-    tokio::task::block_in_place(|| db.states.put(hash.as_ref(), state))?;
+    tokio::task::block_in_place(|| db.states.put(hash.as_ref(), state.clone()))?;
 
-    // TODO: index nonces
-    // TODO: indes stores
-    // TODO: index events
+    for (addr, nonce) in &state.state_diff.nonces {
+        let address = U256::from_hex(addr.as_ref()).unwrap();
+        let number = U64::from_u64(number);
+
+        let key = AddressAndNumber::from(address, number);
+        let val = U256::from_hex(nonce.as_ref())?;
+        db.nonces_index.write().await.insert(&key, val)?;
+        tracing::debug!(
+            address = key.address().into_str(),
+            nonce = nonce.as_ref(),
+            "Nonce saved"
+        );
+    }
+
+    for (addr, kvs) in &state.state_diff.storage_diffs {
+        for kv in kvs {
+            let key = &kv.key;
+            let val = &kv.value;
+
+            // TODO: index storage update
+
+            tracing::debug!(
+                address = addr.as_ref(),
+                key = key.as_ref(),
+                val = val.as_ref(),
+                "Store saved"
+            );
+        }
+    }
+
+    // TODO: handle deployed/declared/replaces/... classes
 
     Ok(None)
 }
@@ -269,7 +315,7 @@ where
     tracing::debug!(?event, "Handling");
     let mut events = Vec::new();
     match event {
-        Event::Uptime { seconds} => {
+        Event::Uptime { seconds } => {
             if seconds % 60 == 0 {
                 tracing::info!(seconds, "uptime");
             }

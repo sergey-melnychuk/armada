@@ -23,10 +23,10 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
     - [ ] reorg (purge block)
     - [ ] state update
       - [x] dto mapping
+      - [x] nonce index
       - [ ] store index
-      - [ ] nonce index
     - [ ] classes
-    - [ ] accounts
+    - [ ] accounts (?)
   - [x] sync testkit
 - [ ] Storage
   - [x] local
