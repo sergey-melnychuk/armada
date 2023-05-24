@@ -260,6 +260,27 @@ pub fn map_state_update(state: dto::StateUpdate) -> StateUpdate {
     }
 }
 
+pub mod gzip {
+    use flate2::read::GzDecoder;
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use std::io::prelude::*;
+
+    pub fn gzip(input: &str) -> anyhow::Result<Vec<u8>> {
+        let mut e = GzEncoder::new(Vec::new(), Compression::default());
+        e.write_all(input.as_ref())?;
+        let bytes = e.finish()?;
+        Ok(bytes)
+    }
+
+    pub fn ungzip(input: &[u8]) -> anyhow::Result<String> {
+        let mut d = GzDecoder::new(input);
+        let mut ret = String::new();
+        d.read_to_string(&mut ret)?;
+        Ok(ret)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,6 +291,15 @@ mod tests {
         let num = U256::from_hex(hex)?;
         assert_eq!(num.into_str(), "0x".to_string() + hex);
         assert_eq!(num.into_str_pad(), "0x0".to_string() + hex);
+        Ok(())
+    }
+
+    #[test]
+    fn test_gzip_roundtrip() -> anyhow::Result<()> {
+        let message = "The quick brown fox jumps over the lazy dog";
+        let bytes = gzip::gzip(message.as_ref())?;
+        let restore = gzip::ungzip(&bytes)?;
+        assert_eq!(restore, message);
         Ok(())
     }
 }

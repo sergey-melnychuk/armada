@@ -30,7 +30,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [x] sync testkit
 - [ ] Storage
   - [x] local
-  - [ ] gzip
+  - [x] gzip
   - [ ] async?
   - [ ] remote (AWS S3)
 - [x] Indices

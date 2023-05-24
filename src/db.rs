@@ -13,7 +13,7 @@ use yakvdb::typed::{Store, DB};
 use crate::{
     api::gen::BlockWithTxs,
     seq::dto,
-    util::{U256, U64},
+    util::{gzip, U256, U64},
 };
 
 #[derive(Clone)]
@@ -153,7 +153,7 @@ where
 {
     fn path(&self, key: &str) -> PathBuf {
         let mut path = self.base.clone();
-        path.push(format!("{}.json", key));
+        path.push(format!("{}.json.gzip", key));
         path
     }
 
@@ -164,8 +164,9 @@ where
         }
 
         let mut file = File::open(&path)?;
-        let mut json = String::with_capacity(1024);
-        let _ = file.read_to_string(&mut json)?;
+        let mut bytes = Vec::with_capacity(1024);
+        let _ = file.read_to_end(&mut bytes)?;
+        let json = gzip::ungzip(&bytes)?;
         Ok(Some(json))
     }
 }
@@ -208,7 +209,8 @@ where
         let path = self.path(key);
         let mut file = File::create(path)?;
         let json = serde_json::to_string(&val)?;
-        file.write_all(json.as_bytes())?;
+        let bytes = gzip::gzip(&json)?;
+        file.write_all(&bytes)?;
         Ok(())
     }
 }

@@ -27,6 +27,7 @@ keccak-hash = "0.10.0"
 hex = "0.4.3"
 serde-tuple-vec-map = "1.0.1"
 yakvdb = "0.6.1"
+flate2 = { version = "1.0.26", features = ["zlib-ng"], default-features = false }
 
 [dev-dependencies]
 tempdir = "0.3"
