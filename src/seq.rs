@@ -68,7 +68,7 @@ pub trait SeqApi {
     async fn get_state_by_number(&self, block_number: u64) -> anyhow::Result<dto::StateUpdate>;
     async fn get_state_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::StateUpdate>;
 
-    // TODO: get_contract
+    // TODO: get_class_by_hash, dto::Class
 }
 
 #[async_trait::async_trait]

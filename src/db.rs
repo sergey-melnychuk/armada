@@ -187,5 +187,5 @@ where
 
     fn min(&self) -> anyhow::Result<Option<K>>;
     fn max(&self) -> anyhow::Result<Option<K>>;
-    // TODO: add iter(range), above, below?
+    // TODO: add range loookup (returning iterator)
 }
