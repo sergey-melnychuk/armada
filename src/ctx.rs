@@ -10,7 +10,7 @@ use crate::{
     db::{BlockAndIndex, Repo, Storage},
     eth::EthApi,
     seq::SeqApi,
-    util::{get_state_update, tx_hash, U256},
+    util::{map_state_update, tx_hash, U256},
 };
 
 #[derive(Clone, Debug)]
@@ -151,7 +151,7 @@ where
             })?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
-        let state_update = get_state_update(state);
+        let state_update = map_state_update(state);
         Ok(GetStateUpdateResult::StateUpdate(state_update))
     }
 

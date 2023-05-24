@@ -25,9 +25,9 @@ pub mod dto {
         #[serde(with = "tuple_vec_map")]
         pub nonces: Vec<(Felt, Felt)>,
         pub deployed_contracts: Vec<DeployedContract>,
-        pub old_declared_contracts: Vec<serde_json::Value>, // TODO: match to a DTO
-        pub declared_classes: Vec<serde_json::Value>,       // TODO: match to a DTO
-        pub replaced_classes: Vec<serde_json::Value>,       // TODO: match to a DTO
+        pub old_declared_contracts: Vec<Felt>,
+        pub declared_classes: Vec<DeclaredClass>,
+        pub replaced_classes: Vec<ReplacedClass>,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -38,6 +38,18 @@ pub mod dto {
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct DeployedContract {
+        pub address: Felt,
+        pub class_hash: Felt,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct DeclaredClass {
+        pub class_hash: Felt,
+        pub compiled_class_hash: Felt,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct ReplacedClass {
         pub address: Felt,
         pub class_hash: Felt,
     }

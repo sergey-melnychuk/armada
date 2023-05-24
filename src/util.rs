@@ -6,8 +6,12 @@ use tokio::{
 };
 
 use crate::{
-    api::gen::{BlockHash, DeclareTxn, Felt, PendingStateUpdate, StateDiff, StateUpdate, Txn},
-    seq::dto,
+    api::gen::{
+        Address, BlockHash, ContractStorageDiffItem, DeclareTxn, DeclaredClassesItem,
+        DeployedContractItem, Felt, NoncesItem, PendingStateUpdate, ReplacedClassesItem, StateDiff,
+        StateUpdate, StorageEntriesItem, Txn,
+    },
+    seq::dto::{self, DeclaredClass, DeployedContract, ReplacedClass},
 };
 
 #[derive(Clone, Debug, Default)]
@@ -173,19 +177,80 @@ pub fn tx_hash(tx: &Txn) -> &Felt {
     }
 }
 
-pub fn get_state_update(state: dto::StateUpdate) -> StateUpdate {
+pub fn map_state_update(state: dto::StateUpdate) -> StateUpdate {
     StateUpdate {
         block_hash: BlockHash(state.block_hash),
         new_root: state.new_root,
         pending_state_update: PendingStateUpdate {
             old_root: state.old_root,
             state_diff: StateDiff {
-                declared_classes: Default::default(),   // TODO: map from dto
-                deployed_contracts: Default::default(), // TODO: map from dto
-                deprecated_declared_classes: Default::default(), // TODO: map from dto
-                nonces: Default::default(),             // TODO: map from dto
-                replaced_classes: Default::default(),   // TODO: map from dto
-                storage_diffs: Default::default(),      // TODO: map from dto
+                deployed_contracts: state
+                    .state_diff
+                    .deployed_contracts
+                    .into_iter()
+                    .map(
+                        |DeployedContract {
+                             address,
+                             class_hash,
+                         }| DeployedContractItem {
+                            address,
+                            class_hash,
+                        },
+                    )
+                    .collect(),
+                nonces: state
+                    .state_diff
+                    .nonces
+                    .into_iter()
+                    .map(|(addr, nonce)| NoncesItem {
+                        contract_address: Some(Address(addr)),
+                        nonce: Some(nonce),
+                    })
+                    .collect(),
+                storage_diffs: state
+                    .state_diff
+                    .storage_diffs
+                    .into_iter()
+                    .map(|(addr, diff)| ContractStorageDiffItem {
+                        address: addr,
+                        storage_entries: diff
+                            .into_iter()
+                            .map(|kv| StorageEntriesItem {
+                                key: Some(kv.key),
+                                value: Some(kv.value),
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+                deprecated_declared_classes: state.state_diff.old_declared_contracts,
+                replaced_classes: state
+                    .state_diff
+                    .replaced_classes
+                    .into_iter()
+                    .map(
+                        |ReplacedClass {
+                             address,
+                             class_hash,
+                         }| ReplacedClassesItem {
+                            class_hash: Some(class_hash),
+                            contract_address: Some(Address(address)),
+                        },
+                    )
+                    .collect(),
+                declared_classes: state
+                    .state_diff
+                    .declared_classes
+                    .into_iter()
+                    .map(
+                        |DeclaredClass {
+                             class_hash,
+                             compiled_class_hash,
+                         }| DeclaredClassesItem {
+                            class_hash: Some(class_hash),
+                            compiled_class_hash: Some(compiled_class_hash),
+                        },
+                    )
+                    .collect(),
             },
         },
     }
