@@ -46,7 +46,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [x] `starknet_getBlockWithTxHashes`
   - [x] `starknet_getBlockWithTxs`
   - [x] `starknet_getStateUpdate`
-  - [ ] `starknet_getStorageAt`
+  - [x] `starknet_getStorageAt`
   - [x] `starknet_getTransactionByHash`
   - [x] `starknet_getTransactionByBlockIdAndIndex`
   - [ ] `starknet_getTransactionReceipt`
@@ -59,13 +59,13 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [ ] `starknet_blockNumber`
   - [ ] `starknet_blockHashAndNumber`
   - [ ] `starknet_chainId`
-  - [ ] `starknet_pendingTransactions`
+  - [ ] ~~`starknet_pendingTransactions`~~
   - [ ] `starknet_syncing`
   - [ ] `starknet_getEvents`
   - [ ] `starknet_getNonce`
-  - [ ] `starknet_addInvokeTransaction`
-  - [ ] `starknet_addDeclareTransaction`
-  - [ ] `starknet_addDeployAccountTransaction`
+  - [ ] ~~`starknet_addInvokeTransaction`~~ (proxy call)
+  - [ ] ~~`starknet_addDeclareTransaction`~~ (proxy call)
+  - [ ] ~~`starknet_addDeployAccountTransaction`~~ (proxy call)
   - [ ] ~~`starknet_traceTransaction`~~
   - [ ] ~~`starknet_simulateTransaction`~~
   - [ ] ~~`starknet_traceBlockTransactions`~~
