@@ -256,6 +256,12 @@ curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_state_update?blockNum
 
 curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockNumber=24978"
 
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockNumber=12304" | jq | grep status
+>  "status": "ACCEPTED_ON_L1",
+
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockHash=0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd" | jq | grep status
+>  "status": "ABORTED",
+
 curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com
 
 curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses

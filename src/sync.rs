@@ -156,6 +156,11 @@ where
     let block_number = *block.block_header.block_number.as_ref() as u64;
     let block_hash = block.block_header.block_hash.0.clone();
 
+    // TODO: double-check block status (must be ACCEPTED_ON_{L1,L2})
+    // The isusue with the block (below) is that requested by hash
+    // it returns ABORTED, but requested by number it returns ACCEPTED_ON_L1
+    // 12304/0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd
+
     let event = {
         let db = &mut ctx.lock().await.db;
         save_block(db, hash.clone(), block).await?

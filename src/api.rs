@@ -107,6 +107,8 @@ pub mod gen {
         Pending,
         #[serde(rename = "REJECTED")]
         Rejected,
+        #[serde(rename = "ABORTED")]
+        Aborted,
     }
 
     // object: 'BLOCK_TAG'
@@ -1373,6 +1375,8 @@ pub mod gen {
         Pending,
         #[serde(rename = "REJECTED")]
         Rejected,
+        #[serde(rename = "ABORTED")]
+        Aborted,
     }
 
     // object: 'TXN_TYPE'

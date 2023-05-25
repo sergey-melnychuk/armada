@@ -300,6 +300,7 @@ pub fn get_txn_receipt(block: BlockWithTxs, tx_index: usize) -> TxnReceipt {
             BlockStatus::AcceptedOnL2 => TxnStatus::AcceptedOnL2,
             BlockStatus::Pending => TxnStatus::Pending,
             BlockStatus::Rejected => TxnStatus::Rejected,
+            BlockStatus::Aborted => TxnStatus::Aborted,
         },
         transaction_hash: TxnHash(tx_hash(&tx).clone()),
     };
