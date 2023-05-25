@@ -72,12 +72,11 @@ Each entity has natural primary key, being it a hash, block number or an address
   - source: BLOCK
   - 32 bytes => (32 bytes + 8 bytes)
   - entry: 72 bytes
-- (CONTRACT address, [N * KEY], BLOCK number) => [M * DATA] (EVENTS)
+- (CONTRACT address, [each KEY], BLOCK number) => TX index (EVENTS)
+  - (lookup event data from the specific TX at the specific block)
   - source: BLOCK
-  - (32 bytes, (N = 8 bytes) * 32 bytes, 8 bytes) => (M = 8 bytes) * 32 bytes
-  - entry: (N + M) * 32 + 16 + 40 bytes
-    - N=3 M=3: 248 bytes
-    - N=10 M=10: 696 bytes
+  - N * (32 bytes, 32 bytes, 8 bytes) => 8 bytes
+  - entry: 32 + 32 + 8 + 8 bytes = 80 bytes
 - (CONTRACT address, BLOCK number) => NONCE
   - source: STATE
   - (32 bytes + 8 bytes) => 32 bytes (really 8 should be enough?)
@@ -105,7 +104,7 @@ Example:
   - 100 transactions
     - having 20 addresses involved
     - 10 events each
-      - 1 key + 4 values each (216 bytes each)
+      - 1 key + 4 values each (80 bytes each)
   - 100 storage diffs
     - 10 key-value pairs each (104 bytes ech)
   - 100 nonces
@@ -152,48 +151,48 @@ N=1000:
 - indices:
   - block: bytes(40) = 88 Kb
   - tx: bytes(72) = 150 Kb
-  - events: bytes(216 x 1000) = 413 Mb
+  - events: bytes(80 x 1000) = ~150 Mb
   - nonce: bytes(72) = 150 Kb
   - storage: bytes(104 x 1000) = 200 Mb
   - account: bytes(176 x 20) = 6884 Kb
   - class: bytes(72) = 150 Kb
-- TOTAL: 150 + 770 Mb (data=16%)
+- TOTAL: 150 + 360 Mb (data=~30%)
 
 N=10k:
 - data: 10k * (3 * 50 kb) = 1500 Mb
 - indices:
   - block: bytes(40) = 790 Kb
   - tx: bytes(72) = 1415 Kb
-  - events: bytes(216 x 1000) = 4120 Mb
+  - events: bytes(80 x 1000) = ~1500 Mb
   - nonce: bytes(72) = 1415 Kb
-  - storage: bytes(104 x 1000) = 1985 Mb
+  - storage: bytes(104 x 1000) = ~2000 Mb
   - account: bytes(176 x 20) = 69 Mb
   - class: bytes(72) = 1415 Kb
-- TOTAL: 1500 + 6183 Mb (data=19%)
+- TOTAL: 1500 + 3600 Mb (data=~30%)
 
 N=100k:
 - data: 100k * (3 * 50 kb) = 15 Gb
 - indices:
   - block: bytes(40) = 9 Mb
   - tx: bytes(72) = 15 Mb
-  - events: bytes(216 x 1000) = 41200 Mb
+  - events: bytes(80 x 1000) = ~15 Gb
   - nonce: bytes(72) = 15 Mb
-  - storage: bytes(104 x 1000) = 19836 Mb
-  - account: bytes(176 x 20) = 6884 Kb
+  - storage: bytes(104 x 1000) = 20 Gb
+  - account: bytes(176 x 20) = 7 Mb
   - class: bytes(72) = 15 Mb
-- TOTAL: 15 + 62 Gb (data=19%)
+- TOTAL: 15 + 36 Gb (data=~30%)
 
 N=1M:
 - data: 1M * (3 * 50 kb) = 150 Gb
 - indices:
   - block: bytes(40) = 77 Mb
   - tx: bytes(72) = 138 Mb
-  - events: bytes(568) = 411988 Mb
+  - events: bytes(80 x 1000) = ~160 Gb
   - nonce: bytes(72) = 138 Mb
-  - storage: bytes(104) = 198365 Mb
-  - account: bytes(448) = 6715 Mb
+  - storage: bytes(104) = ~200 Gb
+  - account: bytes(448) = ~7 Mb
   - class: bytes(72) = 138 Mb
-- TOTA: 150 + 618 Gb (data=19%)
+- TOTA: 150 + 368 Gb (data=~30%)
 
 ### Security
 
