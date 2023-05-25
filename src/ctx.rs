@@ -4,14 +4,7 @@ use once_cell::sync::Lazy;
 use tokio::{runtime::Runtime, sync::Mutex, time::Instant};
 use yakvdb::typed::DB;
 
-use crate::{
-    api::gen::*,
-    cfg::Config,
-    db::{BlockAndIndex, Repo, Storage},
-    eth::EthApi,
-    seq::SeqApi,
-    util::{map_state_update, tx_hash, U256},
-};
+use crate::{api::gen::*, cfg::Config, db::{AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage}, eth::EthApi, seq::SeqApi, util::{U256, U64, map_state_update, tx_hash}};
 
 #[derive(Clone, Debug)]
 pub struct Head {
@@ -157,11 +150,49 @@ where
 
     fn getStorageAt(
         &self,
-        _contract_address: Address,
-        _key: StorageKey,
-        _block_id: BlockId,
+        contract_address: Address,
+        key: StorageKey,
+        block_id: BlockId,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let block_number = match block_id {
+            BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            _ => {
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let address = U256::from_hex(contract_address.0.as_ref())
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to read address: '{e}'"),
+                )
+            })?;
+        let storage_key = U256::from_hex(key.as_ref())
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to read key: '{e}'"),
+                )
+            })?;
+        let number = U64::from_u64(block_number);
+        let item = AddressWithKeyAndNumber::from(address, storage_key, number);
+
+        // TODO: impl "closest" key (lookup .below with given block if no data found)
+        // TODO: impl "latest" key (first lookup .below with block=u64::MAX)
+        let result = RUNTIME.block_on(async {
+            self.db.states_index.read().await.lookup(&item)
+                .map_err(|e| {
+                    iamgroot::jsonrpc::Error::new(
+                        -65000,
+                        format!("Failed to read key: '{e}'"),
+                    )
+                })
+        })?
+        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+        let felt = Felt::try_new(&result.into_str())?;
+        Ok(felt)
     }
 
     fn getTransactionByHash(
