@@ -215,21 +215,18 @@ pub async fn save_block(
 
     for receipt in &block.receipts {
         for event in &receipt.events {
-            let address = &event.from_address.0;
+            let addr = &event.from_address.0;
             let keys = &event.event_content.keys;
-            let data = &event.event_content.data;
+            for key in keys {
+                let address = U256::from_hex(addr.as_ref()).unwrap();
+                let key = U256::from_hex(key.as_ref()).unwrap();
+                let num = U64::from_u64(number as u64);
 
-            // TODO: index events
-            if keys.len() > 1 {
-                tracing::info!(keys = keys.len(), data = data.len(), "Event");
+                let key = AddressWithKeyAndNumber::from(address, key, num);
+                let val = U64::from_u64(receipt.transaction_index as u64);
+                db.events_index.write().await.insert(&key, val)?;
+                tracing::debug!(address = addr.as_ref(), "Event saved");
             }
-
-            tracing::debug!(
-                address = address.as_ref(),
-                keys = keys.len(),
-                data = data.len(),
-                "Event saved"
-            );
         }
     }
 

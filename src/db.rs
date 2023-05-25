@@ -24,6 +24,7 @@ pub struct Storage {
     pub states: DirRepo<dto::StateUpdate>,
     pub states_index: Arc<RwLock<Store<AddressWithKeyAndNumber, U256>>>,
     pub nonces_index: Arc<RwLock<Store<AddressAndNumber, U256>>>,
+    pub events_index: Arc<RwLock<Store<AddressWithKeyAndNumber, U64>>>,
 }
 
 pub struct BlockAndIndex([u8; 40]);
@@ -140,6 +141,12 @@ impl Storage {
         let blocks_index = Arc::new(RwLock::new(blocks_index));
 
         let mut path = base.to_owned();
+        path.push("block");
+        path.push("event.yak");
+        let events_index = Store::new(&path);
+        let events_index = Arc::new(RwLock::new(events_index));
+
+        let mut path = base.to_owned();
         path.push("tx");
         fs::create_dir_all(&path).ok();
 
@@ -172,6 +179,7 @@ impl Storage {
             states,
             states_index,
             nonces_index,
+            events_index,
         }
     }
 }
