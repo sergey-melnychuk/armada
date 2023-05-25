@@ -283,4 +283,8 @@ curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getStorageAt","params":["0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7","0x04778a33a3c9dcad587c2f328738d089421ec50b3f7b9054218072d19228aac",{"block_number":24978}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getStorageAt","params":["0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7","0x077eb8e45a2f882311243ea41d07afead6a5eff3b9f7e6a4e1850e38dcfe773e",{"block_number":24978}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getNonce","params":[{"block_number":24978},"0x599e583fcaef9dfe541376ce7453990d35610209565708ded8c9718ec8ee884"],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getNonce","params":[{"block_number":24978},"0x692d5328ece7fcd8e8a6a9e9efad5ee2c1e5cdb4af6f6b8e6827347c2df0254"],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 ```

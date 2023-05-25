@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use tokio::{runtime::Runtime, sync::Mutex, time::Instant};
 use yakvdb::typed::DB;
 
-use crate::{api::gen::*, cfg::Config, db::{AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage}, eth::EthApi, seq::SeqApi, util::{U256, U64, map_state_update, tx_hash}};
+use crate::{api::gen::*, cfg::Config, db::{AddressAndNumber, AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage}, eth::EthApi, seq::SeqApi, util::{U256, U64, map_state_update, tx_hash}};
 
 #[derive(Clone, Debug)]
 pub struct Head {
@@ -355,10 +355,41 @@ where
 
     fn getNonce(
         &self,
-        _block_id: BlockId,
-        _contract_address: Address,
+        block_id: BlockId,
+        contract_address: Address,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let block_number = match block_id {
+            BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            _ => {
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let address = U256::from_hex(contract_address.0.as_ref())
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to read address: '{e}'"),
+                )
+            })?;
+        let number = U64::from_u64(block_number);
+        let item = AddressAndNumber::from(address, number);
+
+        // TODO: impl "closest" key (lookup .below with given block if no data found)
+        // TODO: impl "latest" key (first lookup .below with block=u64::MAX)
+        let result = RUNTIME.block_on(async {
+            self.db.nonces_index.read().await.lookup(&item)
+                .map_err(|e| {
+                    iamgroot::jsonrpc::Error::new(
+                        -65000,
+                        format!("Failed to read nonce: '{e}'"),
+                    )
+                })
+        })?
+        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+        let felt = Felt::try_new(&result.into_str())?;
+        Ok(felt)
     }
 
     fn addInvokeTransaction(
