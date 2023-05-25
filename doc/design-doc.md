@@ -255,9 +255,25 @@ curl "https://alpha4.starknet.io/feeder_gateway/get_block?blockNumber=805543" | 
 
 curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com | jq > etc/ethereum-latest.json
 
-$ curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses
-{"GpsStatementVerifier": "0x8f97970aC5a9aa8D130d35146F5b59c4aef57963", "Starknet": "0xde29d060D45901Fb19ED6C6e959EB22d8626708e"}
+curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses
+{"Starknet": "0xde29d060D45901Fb19ED6C6e959EB22d8626708e", "GpsStatementVerifier": "0x8f97970aC5a9aa8D130d35146F5b59c4aef57963"}
 
-$ curl https://alpha-mainnet.starknet.io/feeder_gateway/get_contract_addresses
+curl https://alpha-mainnet.starknet.io/feeder_gateway/get_contract_addresses
 {"Starknet": "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4", "GpsStatementVerifier": "0x47312450B3Ac8b5b8e247a6bB6d523e7605bDb60"}
+```
+
+#### Example queries
+
+```
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getBlockWithTxHashes","params":[{"block_number":35130}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getBlockWithTxHashes","params":[{"block_hash":"0x64185eba772257a97d104f9ef14a50f9a6122d04f27f9f2b406474a999c9b68"}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getStateUpdate","params":[{"block_hash":"0x64185eba772257a97d104f9ef14a50f9a6122d04f27f9f2b406474a999c9b68"}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getTransactionByBlockIdAndIndex","params":[{"block_hash":"0x64185eba772257a97d104f9ef14a50f9a6122d04f27f9f2b406474a999c9b68"}, 0],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getTransactionByHash","params":["0x6e0d2d6578de1d328a6a87f6db04680dfe8cac69f1f97d26290635396b37b4a"],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getBlockTransactionCount","params":[{"block_hash":"0x64185eba772257a97d104f9ef14a50f9a6122d04f27f9f2b406474a999c9b68"}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 ```
