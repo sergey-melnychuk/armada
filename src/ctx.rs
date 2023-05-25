@@ -372,7 +372,7 @@ where
 
         let n = block.block_body_with_txs.transactions.len() as i64;
 
-        Ok(GetBlockTransactionCountResult::try_new(n)?)
+        GetBlockTransactionCountResult::try_new(n)
     }
 
     fn call(

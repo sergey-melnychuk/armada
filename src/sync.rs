@@ -225,7 +225,7 @@ pub async fn save_block(
             for key in keys {
                 let address = U256::from_hex(addr.as_ref()).unwrap();
                 let key = U256::from_hex(key.as_ref()).unwrap();
-                let num = U64::from_u64(number as u64);
+                let num = U64::from_u64(number);
 
                 let key = AddressWithKeyAndNumber::from(address, key, num);
                 let val = U64::from_u64(receipt.transaction_index as u64);
