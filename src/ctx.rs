@@ -4,7 +4,14 @@ use once_cell::sync::Lazy;
 use tokio::{runtime::Runtime, sync::Mutex, time::Instant};
 use yakvdb::typed::DB;
 
-use crate::{api::gen::*, cfg::Config, db::{AddressAndNumber, AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage}, eth::EthApi, seq::SeqApi, util::{U256, U64, map_state_update, tx_hash}};
+use crate::{
+    api::gen::*,
+    cfg::Config,
+    db::{AddressAndNumber, AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage},
+    eth::EthApi,
+    seq::SeqApi,
+    util::{get_txn_receipt, map_state_update, tx_hash, U256, U64},
+};
 
 #[derive(Clone, Debug)]
 pub struct Head {
@@ -156,40 +163,70 @@ where
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
         let block_number = match block_id {
             BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            BlockId::BlockHash { block_hash } => {
+                let key = block_hash.0.as_ref();
+                let block = self
+                    .db
+                    .blocks
+                    .get(key)
+                    .map_err(|e| {
+                        iamgroot::jsonrpc::Error::new(
+                            -65000,
+                            format!("Failed to fetch block '{}': {:?}", key, e),
+                        )
+                    })?
+                    .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                *block.block_header.block_number.as_ref() as u64
+            }
+            BlockId::BlockTag(BlockTag::Latest) => u64::MAX,
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
             }
         };
 
-        let address = U256::from_hex(contract_address.0.as_ref())
-            .map_err(|e| {
-                iamgroot::jsonrpc::Error::new(
-                    -65000,
-                    format!("Failed to read address: '{e}'"),
-                )
-            })?;
-        let storage_key = U256::from_hex(key.as_ref())
-            .map_err(|e| {
-                iamgroot::jsonrpc::Error::new(
-                    -65000,
-                    format!("Failed to read key: '{e}'"),
-                )
-            })?;
+        let address = U256::from_hex(contract_address.0.as_ref()).map_err(|e| {
+            iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read address: '{e}'"))
+        })?;
+        let storage_key = U256::from_hex(key.as_ref()).map_err(|e| {
+            iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+        })?;
         let number = U64::from_u64(block_number);
         let item = AddressWithKeyAndNumber::from(address, storage_key, number);
 
-        // TODO: impl "closest" key (lookup .below with given block if no data found)
-        // TODO: impl "latest" key (first lookup .below with block=u64::MAX)
-        let result = RUNTIME.block_on(async {
-            self.db.states_index.read().await.lookup(&item)
-                .map_err(|e| {
-                    iamgroot::jsonrpc::Error::new(
-                        -65000,
-                        format!("Failed to read key: '{e}'"),
-                    )
-                })
-        })?
-        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+        let item = if block_number == u64::MAX {
+            RUNTIME
+                .block_on(async { self.db.states_index.read().await.below(&item) })
+                .ok()
+                .flatten()
+                .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?
+        } else {
+            item
+        };
+
+        let result = RUNTIME
+            .block_on(async {
+                self.db
+                    .states_index
+                    .read()
+                    .await
+                    .lookup(&item)
+                    .map_err(|e| {
+                        iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+                    })
+            })?
+            .or_else(|| {
+                RUNTIME
+                    .block_on(async { self.db.states_index.read().await.below(&item) })
+                    .ok()
+                    .flatten()
+                    .and_then(|item| {
+                        RUNTIME
+                            .block_on(async { self.db.states_index.read().await.lookup(&item) })
+                            .ok()
+                            .flatten()
+                    })
+            })
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
         let felt = Felt::try_new(&result.into_str())?;
         Ok(felt)
@@ -203,7 +240,7 @@ where
             iamgroot::jsonrpc::Error::new(
                 -65000,
                 format!(
-                    "Failed to fetch block '{}': {:?}",
+                    "Failed to read TX hash '{}': {:?}",
                     transaction_hash.0.as_ref(),
                     e
                 ),
@@ -260,10 +297,42 @@ where
 
     fn getTransactionReceipt(
         &self,
-        _transaction_hash: TxnHash,
+        transaction_hash: TxnHash,
     ) -> std::result::Result<TxnReceipt, iamgroot::jsonrpc::Error> {
-        // TODO: impl fn map_txn_receipt(txn: Txn, receipt: TxnReceiptSummary) -> TxnReceipt
-        not_implemented()
+        let key = U256::from_hex(transaction_hash.0.as_ref()).map_err(|e| {
+            iamgroot::jsonrpc::Error::new(
+                -65000,
+                format!(
+                    "Failed to read TX hash '{}': {:?}",
+                    transaction_hash.0.as_ref(),
+                    e
+                ),
+            )
+        })?;
+
+        let block_and_index: BlockAndIndex = RUNTIME
+            .block_on(async { self.db.txs_index.read().await.lookup(&key) })
+            .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+        let block_hash = block_and_index.block();
+        let tx_index = block_and_index.index().into_u64() as usize;
+
+        let key = &block_hash.into_str();
+        let block: BlockWithTxs = self
+            .db
+            .blocks
+            .get(key)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to fetch block '{}': {:?}", key, e),
+                )
+            })?
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+        let txn_receipt = get_txn_receipt(block, tx_index);
+        Ok(txn_receipt)
     }
 
     fn getClass(
@@ -360,33 +429,70 @@ where
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
         let block_number = match block_id {
             BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            BlockId::BlockHash { block_hash } => {
+                let key = block_hash.0.as_ref();
+                let block = self
+                    .db
+                    .blocks
+                    .get(key)
+                    .map_err(|e| {
+                        iamgroot::jsonrpc::Error::new(
+                            -65000,
+                            format!("Failed to fetch block '{}': {:?}", key, e),
+                        )
+                    })?
+                    .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                *block.block_header.block_number.as_ref() as u64
+            }
+            BlockId::BlockTag(BlockTag::Latest) => u64::MAX,
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
             }
         };
 
-        let address = U256::from_hex(contract_address.0.as_ref())
-            .map_err(|e| {
-                iamgroot::jsonrpc::Error::new(
-                    -65000,
-                    format!("Failed to read address: '{e}'"),
-                )
-            })?;
+        let address = U256::from_hex(contract_address.0.as_ref()).map_err(|e| {
+            iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read address: '{e}'"))
+        })?;
         let number = U64::from_u64(block_number);
         let item = AddressAndNumber::from(address, number);
 
-        // TODO: impl "closest" key (lookup .below with given block if no data found)
-        // TODO: impl "latest" key (first lookup .below with block=u64::MAX)
-        let result = RUNTIME.block_on(async {
-            self.db.nonces_index.read().await.lookup(&item)
-                .map_err(|e| {
-                    iamgroot::jsonrpc::Error::new(
-                        -65000,
-                        format!("Failed to read nonce: '{e}'"),
-                    )
-                })
-        })?
-        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+        let item = if block_number == u64::MAX {
+            RUNTIME
+                .block_on(async { self.db.nonces_index.read().await.below(&item) })
+                .ok()
+                .flatten()
+                .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?
+        } else {
+            item
+        };
+
+        let result = RUNTIME
+            .block_on(async {
+                self.db
+                    .nonces_index
+                    .read()
+                    .await
+                    .lookup(&item)
+                    .map_err(|e| {
+                        iamgroot::jsonrpc::Error::new(
+                            -65000,
+                            format!("Failed to read nonce: '{e}'"),
+                        )
+                    })
+            })?
+            .or_else(|| {
+                RUNTIME
+                    .block_on(async { self.db.nonces_index.read().await.below(&item) })
+                    .ok()
+                    .flatten()
+                    .and_then(|item| {
+                        RUNTIME
+                            .block_on(async { self.db.nonces_index.read().await.lookup(&item) })
+                            .ok()
+                            .flatten()
+                    })
+            })
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
         let felt = Felt::try_new(&result.into_str())?;
         Ok(felt)
