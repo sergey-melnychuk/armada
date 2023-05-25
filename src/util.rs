@@ -7,9 +7,13 @@ use tokio::{
 
 use crate::{
     api::gen::{
-        Address, BlockHash, ContractStorageDiffItem, DeclareTxn, DeclaredClassesItem,
-        DeployedContractItem, Felt, NoncesItem, PendingStateUpdate, ReplacedClassesItem, StateDiff,
-        StateUpdate, StorageEntriesItem, Txn,
+        Address, BlockHash, BlockStatus, BlockWithTxs, CommonReceiptProperties,
+        ContractStorageDiffItem, DeclareTxn, DeclareTxnReceipt, DeclareTxnReceiptType,
+        DeclaredClassesItem, DeployAccountTxnReceipt, DeployAccountTxnReceiptType,
+        DeployTxnReceipt, DeployTxnReceiptType, DeployedContractItem, Felt, InvokeTxnReceipt,
+        InvokeTxnReceiptType, L1HandlerTxnReceipt, L1HandlerTxnReceiptType, NoncesItem,
+        PendingStateUpdate, ReplacedClassesItem, StateDiff, StateUpdate, StorageEntriesItem, Txn,
+        TxnHash, TxnReceipt, TxnStatus,
     },
     seq::dto::{self, DeclaredClass, DeployedContract, ReplacedClass},
 };
@@ -278,6 +282,61 @@ pub mod gzip {
         let mut ret = String::new();
         d.read_to_string(&mut ret)?;
         Ok(ret)
+    }
+}
+
+pub fn get_txn_receipt(block: BlockWithTxs, tx_index: usize) -> TxnReceipt {
+    let receipt = block.receipts[tx_index].clone();
+    let tx = block.block_body_with_txs.transactions[tx_index].clone();
+
+    let common_receipt_properties = CommonReceiptProperties {
+        actual_fee: receipt.actual_fee,
+        block_hash: block.block_header.block_hash,
+        block_number: block.block_header.block_number,
+        events: receipt.events,
+        messages_sent: receipt.l2_to_l1_messages,
+        status: match block.status {
+            BlockStatus::AcceptedOnL1 => TxnStatus::AcceptedOnL1,
+            BlockStatus::AcceptedOnL2 => TxnStatus::AcceptedOnL2,
+            BlockStatus::Pending => TxnStatus::Pending,
+            BlockStatus::Rejected => TxnStatus::Rejected,
+        },
+        transaction_hash: TxnHash(tx_hash(&tx).clone()),
+    };
+
+    match tx {
+        Txn::DeclareTxn(DeclareTxn::DeclareTxnV1(_)) => {
+            TxnReceipt::DeclareTxnReceipt(DeclareTxnReceipt {
+                common_receipt_properties,
+                r#type: DeclareTxnReceiptType::Declare,
+            })
+        }
+        Txn::DeclareTxn(DeclareTxn::DeclareTxnV2(_)) => {
+            TxnReceipt::DeclareTxnReceipt(DeclareTxnReceipt {
+                common_receipt_properties,
+                r#type: DeclareTxnReceiptType::Declare,
+            })
+        }
+        Txn::DeployTxn(txn) => TxnReceipt::DeployTxnReceipt(DeployTxnReceipt {
+            common_receipt_properties,
+            contract_address: txn.deploy_txn_properties.contract_address_salt,
+            r#type: DeployTxnReceiptType::Deploy,
+        }),
+        Txn::DeployAccountTxn(txn) => {
+            TxnReceipt::DeployAccountTxnReceipt(DeployAccountTxnReceipt {
+                common_receipt_properties,
+                contract_address: txn.deploy_account_txn_properties.contract_address_salt,
+                r#type: DeployAccountTxnReceiptType::DeployAccount,
+            })
+        }
+        Txn::InvokeTxn(_) => TxnReceipt::InvokeTxnReceipt(InvokeTxnReceipt {
+            common_receipt_properties,
+            r#type: InvokeTxnReceiptType::Invoke,
+        }),
+        Txn::L1HandlerTxn(_) => TxnReceipt::L1HandlerTxnReceipt(L1HandlerTxnReceipt {
+            common_receipt_properties,
+            r#type: L1HandlerTxnReceiptType::L1Handler,
+        }),
     }
 }
 
