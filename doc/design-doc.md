@@ -244,15 +244,19 @@ TODO: Describe how peer-to-peer data propagation might work.
 #### Example data
 
 ```
-curl "https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x6f9ca7fb180e21856fe724436c8ac93059732a7d100533242fd6e380cf034f9" | jq > etc/tx.json
+curl "https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x6f9ca7fb180e21856fe724436c8ac93059732a7d100533242fd6e380cf034f9"
 
-curl "https://alpha4.starknet.io/feeder_gateway/get_class_by_hash?classHash=0x3131fa018d520a037686ce3efddeab8f28895662f019ca3ca18a626650f7d1e" | jq > etc/class.json
+curl "https://alpha4.starknet.io/feeder_gateway/get_class_by_hash?classHash=0x3131fa018d520a037686ce3efddeab8f28895662f019ca3ca18a626650f7d1e"
 
-curl "https://alpha4.starknet.io/feeder_gateway/get_state_update?blockNumber=805543" | jq > etc/805543-state-update.json
+curl "https://alpha4.starknet.io/feeder_gateway/get_state_update?blockNumber=805543"
 
-curl "https://alpha4.starknet.io/feeder_gateway/get_block?blockNumber=805543" | jq > etc/805543.json
+curl "https://alpha4.starknet.io/feeder_gateway/get_block?blockNumber=805543"
 
-curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com | jq > etc/ethereum-latest.json
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_state_update?blockNumber=24978"
+
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockNumber=24978"
+
+curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com
 
 curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses
 {"Starknet": "0xde29d060D45901Fb19ED6C6e959EB22d8626708e", "GpsStatementVerifier": "0x8f97970aC5a9aa8D130d35146F5b59c4aef57963"}
@@ -275,4 +279,8 @@ curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getTransactionByHash","params":["0x6e0d2d6578de1d328a6a87f6db04680dfe8cac69f1f97d26290635396b37b4a"],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getBlockTransactionCount","params":[{"block_hash":"0x64185eba772257a97d104f9ef14a50f9a6122d04f27f9f2b406474a999c9b68"}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getStorageAt","params":["0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7","0x04778a33a3c9dcad587c2f328738d089421ec50b3f7b9054218072d19228aac",{"block_number":24978}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getStorageAt","params":["0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7","0x077eb8e45a2f882311243ea41d07afead6a5eff3b9f7e6a4e1850e38dcfe773e",{"block_number":24978}],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 ```
