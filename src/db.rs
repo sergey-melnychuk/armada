@@ -22,6 +22,7 @@ pub struct Storage {
     pub blocks_index: Arc<RwLock<Store<U64, U256>>>,
     pub txs_index: Arc<RwLock<Store<U256, BlockAndIndex>>>,
     pub states: DirRepo<dto::StateUpdate>,
+    pub states_index: Arc<RwLock<Store<AddressWithKeyAndNumber, U256>>>,
     pub nonces_index: Arc<RwLock<Store<AddressAndNumber, U256>>>,
 }
 
@@ -87,6 +88,41 @@ impl<'a> From<&'a [u8]> for AddressAndNumber {
     }
 }
 
+pub struct AddressWithKeyAndNumber([u8; 72]);
+
+impl AddressWithKeyAndNumber {
+    pub fn from(address: U256, key: U256, number: U64) -> Self {
+        let mut bytes = [0u8; 72];
+        bytes[0..32].copy_from_slice(address.as_ref());
+        bytes[32..64].copy_from_slice(key.as_ref());
+        bytes[64..72].copy_from_slice(number.as_ref());
+        Self(bytes)
+    }
+    pub fn address(&self) -> U256 {
+        U256::from(&self.0[0..32])
+    }
+    pub fn key(&self) -> U256 {
+        U256::from(&self.0[32..64])
+    }
+    pub fn number(&self) -> U64 {
+        U64::from(&self.0[64..72])
+    }
+}
+
+impl AsRef<[u8]> for AddressWithKeyAndNumber {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<'a> From<&'a [u8]> for AddressWithKeyAndNumber {
+    fn from(value: &'a [u8]) -> Self {
+        let mut bytes = [0u8; 72];
+        bytes.copy_from_slice(value);
+        Self(bytes)
+    }
+}
+
 impl Storage {
     pub fn new<P: AsRef<Path>>(base: P) -> Self {
         fs::create_dir_all(base.as_ref()).ok();
@@ -119,6 +155,12 @@ impl Storage {
 
         let mut path = base.to_owned();
         path.push("state");
+        path.push("index.yak");
+        let states_index = Store::new(&path);
+        let states_index = Arc::new(RwLock::new(states_index));
+
+        let mut path = base.to_owned();
+        path.push("state");
         path.push("nonce.yak");
         let nonces_index = Store::new(&path);
         let nonces_index = Arc::new(RwLock::new(nonces_index));
@@ -128,6 +170,7 @@ impl Storage {
             blocks_index,
             txs_index,
             states,
+            states_index,
             nonces_index,
         }
     }

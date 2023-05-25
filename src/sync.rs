@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
-use crate::db::{AddressAndNumber, Repo};
+use crate::db::{AddressAndNumber, AddressWithKeyAndNumber, Repo};
 use crate::{
     api::gen::{BlockWithTxs, Felt},
     ctx::Context,
@@ -220,6 +220,9 @@ pub async fn save_block(
             let data = &event.event_content.data;
 
             // TODO: index events
+            if keys.len() > 1 {
+                tracing::info!(keys = keys.len(), data = data.len(), "Event");
+            }
 
             tracing::debug!(
                 address = address.as_ref(),
@@ -263,7 +266,6 @@ pub async fn save_state(
     for (addr, nonce) in &state.state_diff.nonces {
         let address = U256::from_hex(addr.as_ref()).unwrap();
         let number = U64::from_u64(number);
-
         let key = AddressAndNumber::from(address, number);
         let val = U256::from_hex(nonce.as_ref())?;
         db.nonces_index.write().await.insert(&key, val)?;
@@ -275,16 +277,17 @@ pub async fn save_state(
     }
 
     for (addr, kvs) in &state.state_diff.storage_diffs {
+        let address = U256::from_hex(addr.as_ref()).unwrap();
+        let number = U64::from_u64(number);
         for kv in kvs {
-            let key = &kv.key;
-            let val = &kv.value;
-
-            // TODO: index storage update
-
+            let key = U256::from_hex(kv.key.as_ref()).unwrap();
+            let val = U256::from_hex(kv.value.as_ref()).unwrap();
+            let item = AddressWithKeyAndNumber::from(address.clone(), key, number.clone());
+            db.states_index.write().await.insert(&item, val)?;
             tracing::debug!(
                 address = addr.as_ref(),
-                key = key.as_ref(),
-                val = val.as_ref(),
+                key = kv.key.as_ref(),
+                val = kv.value.as_ref(),
                 "Store saved"
             );
         }
