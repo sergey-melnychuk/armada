@@ -53,7 +53,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [ ] `starknet_getClass`
   - [ ] `starknet_getClassHashAt`
   - [ ] `starknet_getClassAt`
-  - [ ] `starknet_getBlockTransactionCount`
+  - [x] `starknet_getBlockTransactionCount`
   - [ ] `starknet_call`
   - [ ] `starknet_estimateFee`
   - [ ] `starknet_blockNumber`

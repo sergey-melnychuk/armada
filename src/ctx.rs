@@ -261,9 +261,21 @@ where
 
     fn getBlockTransactionCount(
         &self,
-        _block_id: BlockId,
+        block_id: BlockId,
     ) -> std::result::Result<GetBlockTransactionCountResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let block = match self.getBlockWithTxs(block_id)? {
+            GetBlockWithTxsResult::BlockWithTxs(block) => block,
+            _ => {
+                return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
+            }
+        };
+
+        let n = block
+            .block_body_with_txs
+            .transactions
+            .len() as i64;
+
+        Ok(GetBlockTransactionCountResult::try_new(n)?)
     }
 
     fn call(
