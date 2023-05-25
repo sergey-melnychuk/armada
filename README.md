@@ -19,14 +19,14 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [x] event handlers
     - [x] save block (+index)
     - [x] index transactions
-    - [ ] events
+    - [x] events
     - [ ] reorg (purge block)
-    - [ ] state update
+    - [x] state update
       - [x] dto mapping
       - [x] nonce index
-      - [ ] store index
+      - [x] store index
     - [ ] classes
-    - [ ] accounts (?)
+    - [ ] ~~accounts~~
   - [x] sync testkit
 - [ ] Storage
   - [x] local
@@ -36,7 +36,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 - [x] Indices
   - [x] local ([yakvdb](https://github.com/sergey-melnychuk/yakvdb))
   - [ ] remote (AWS DynamoDB)
-  - [ ] snapshot (for a range of blocks)
+  - [ ] snapshot?
 - [ ] Testing
   - [ ] make seq & eth tests hermetic ([httpmock](https://docs.rs/httpmock/latest/httpmock/))
 - [x] Single shared context
