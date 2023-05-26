@@ -65,6 +65,38 @@ where
     pub fn shared(&self) -> Arc<Mutex<Shared>> {
         self.shared.clone()
     }
+
+    fn get_block_number(
+        &self,
+        block_id: BlockId,
+    ) -> std::result::Result<u64, iamgroot::jsonrpc::Error> {
+        let block_number = match block_id {
+            BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            BlockId::BlockHash { block_hash } => {
+                let key = block_hash.0.as_ref();
+                let block = self
+                    .db
+                    .blocks
+                    .get(key)
+                    .map_err(|e| {
+                        iamgroot::jsonrpc::Error::new(
+                            -65000,
+                            format!("Failed to fetch block '{}': {:?}", key, e),
+                        )
+                    })?
+                    .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                *block.block_header.block_number.as_ref() as u64
+            }
+            BlockId::BlockTag(BlockTag::Latest) => u64::MAX,
+            _ => {
+                return Err(iamgroot::jsonrpc::Error::new(
+                    -1,
+                    "'Pending' block is not suppoerted".to_string(),
+                ));
+            }
+        };
+        Ok(block_number)
+    }
 }
 
 impl<ETH, SEQ> crate::api::gen::Rpc for Context<ETH, SEQ>
@@ -417,9 +449,126 @@ where
 
     fn getEvents(
         &self,
-        _filter: Filter,
+        filter: Filter,
     ) -> std::result::Result<EventsChunk, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let addr = filter
+            .event_filter
+            .address
+            .map(|addr| U256::from_hex(addr.0.as_ref()).unwrap())
+            .ok_or(iamgroot::jsonrpc::Error::new(
+                -1,
+                "Address is undefined".to_string(),
+            ))?;
+
+        let lo = if let Some(from_block) = filter.event_filter.from_block {
+            self.get_block_number(from_block)?
+        } else {
+            0
+        };
+
+        let hi = if let Some(to_block) = filter.event_filter.to_block {
+            self.get_block_number(to_block)?
+        } else {
+            u64::MAX
+        };
+
+        if hi - lo + 1 > 100 {
+            return Err(iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Too many blocks: {}", hi - lo + 1),
+            ));
+        }
+
+        let keys: Vec<U256> = filter
+            .event_filter
+            .keys
+            .map(|vec| vec.into_iter().flatten().collect())
+            .map(|vec: Vec<Felt>| {
+                vec.into_iter()
+                    .map(|felt| U256::from_hex(felt.as_ref()).unwrap())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        if keys.len() > 100 {
+            return Err(iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Too many keys: {}", keys.len()),
+            ));
+        }
+
+        let mut events: Vec<EmittedEvent> = Vec::new();
+        for n in lo..=hi {
+            let number = U64::from_u64(n);
+            for k in &keys {
+                let key = AddressWithKeyAndNumber::from(addr.clone(), k.clone(), number.clone());
+
+                let found = RUNTIME.block_on(async {
+                    let block = self
+                        .db
+                        .blocks_index
+                        .read()
+                        .await
+                        .lookup(&number)
+                        .map_err(|e| {
+                            iamgroot::jsonrpc::Error::new(
+                                -1,
+                                format!("Failed to fetch block: {e:?}"),
+                            )
+                        })?
+                        .and_then(|hash| self.db.blocks.get(&hash.into_str()).ok().flatten());
+
+                    let tx = self
+                        .db
+                        .events_index
+                        .read()
+                        .await
+                        .lookup(&key)
+                        .map_err(|e| {
+                            iamgroot::jsonrpc::Error::new(
+                                -1,
+                                format!("Failed to lookup event: {e:?}"),
+                            )
+                        })?
+                        .map(|x| x.into_u64() as usize);
+
+                    Ok::<Option<(BlockWithTxs, usize)>, iamgroot::jsonrpc::Error>(block.zip(tx))
+                })?;
+
+                found
+                    .map(|(block, tx)| {
+                        let receipt = &block.receipts[tx];
+                        let transaction_hash = receipt.transaction_hash.clone();
+                        receipt
+                            .events
+                            .clone()
+                            .into_iter()
+                            .filter(|event| event.from_address.0.as_ref() == &addr.into_str())
+                            .filter(|event| {
+                                event
+                                    .event_content
+                                    .keys
+                                    .iter()
+                                    .any(|key| key.as_ref() == &k.into_str())
+                            })
+                            .map(move |event| EmittedEvent {
+                                block_hash: block.block_header.block_hash.clone(),
+                                block_number: block.block_header.block_number.clone(),
+                                event,
+                                transaction_hash: transaction_hash.clone(),
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default()
+                    .into_iter()
+                    .for_each(|event| events.push(event));
+            }
+        }
+
+        Ok(EventsChunk {
+            continuation_token: None,
+            events,
+        })
     }
 
     fn getNonce(
