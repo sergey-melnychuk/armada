@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use futures::Future;
 use tokio::sync::{mpsc, oneshot::channel, Mutex, Notify};
 
+use crate::api::gen::BlockStatus;
 use crate::db::{AddressAndNumber, AddressWithKeyAndNumber, Repo};
 use crate::{
     api::gen::{BlockWithTxs, Felt},
@@ -160,6 +161,12 @@ where
     // The isusue with the block (below) is that requested by hash
     // it returns ABORTED, but requested by number it returns ACCEPTED_ON_L1
     // 12304/0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd
+    match &block.status {
+        BlockStatus::AcceptedOnL1 | BlockStatus::AcceptedOnL2 => (),
+        status => {
+            tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?status, "Unexpected block status");
+        }
+    }
 
     let event = {
         let db = &mut ctx.lock().await.db;
