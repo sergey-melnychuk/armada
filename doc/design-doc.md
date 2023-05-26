@@ -262,6 +262,14 @@ curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockNumber=123
 curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockHash=0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd" | jq | grep status
 >  "status": "ABORTED",
 
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockHash=0x1bd1f64828cf2aff0023881344e63f982494b220d5d27057994864680a7f946" | jq | grep number
+
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_block?blockHash=0x47c3637b57c2b079b93c61539950c17e868a28f46cdef28f88521067f21e943"
+
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_state_update?blockHash=0x47c3637b57c2b079b93c61539950c17e868a28f46cdef28f88521067f21e943"
+
+curl "https://alpha-mainnet.starknet.io/feeder_gateway/get_state_update?blockHash=0x61e7ef6a2a3cc281742de97c4d4a5a21925357aac6a18833c1452c4531787ef"
+
 curl -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",true],"id":42}' https://eth.llamarpc.com
 
 curl https://alpha4.starknet.io/feeder_gateway/get_contract_addresses
@@ -299,5 +307,7 @@ curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getNonce","params":["latest","0x692d5328ece7fcd8e8a6a9e9efad5ee2c1e5cdb4af6f6b8e6827347c2df0254"],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getTransactionReceipt","params":["0x542f051013de7fa072e8bab3dda43a2376d7f273bd3a111d91a2d5fe4f05875"],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getEvents","params":{"filter":{"address":"0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8","from_block":{"block_number":24958},"to_block":{"block_number":24998},"keys":[["0x134692b230b9e1ffa39098904722134159652b09c5bc41d88d6698779d228ff"]],"chunk_size":100}},"id":1}' http://127.0.0.1:9000/rpc/v0.3
 
 ```
