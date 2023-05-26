@@ -54,14 +54,14 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [ ] `starknet_getClassHashAt`
   - [ ] `starknet_getClassAt`
   - [x] `starknet_getBlockTransactionCount`
-  - [ ] `starknet_call`
-  - [ ] `starknet_estimateFee`
+  - [ ] `starknet_call` !
+  - [ ] `starknet_estimateFee`  !
   - [ ] `starknet_blockNumber`
   - [ ] `starknet_blockHashAndNumber`
   - [ ] `starknet_chainId`
   - [ ] ~~`starknet_pendingTransactions`~~
   - [ ] `starknet_syncing`
-  - [ ] `starknet_getEvents`
+  - [x] `starknet_getEvents`
   - [x] `starknet_getNonce`
   - [ ] ~~`starknet_addInvokeTransaction`~~ (proxy call)
   - [ ] ~~`starknet_addDeclareTransaction`~~ (proxy call)
