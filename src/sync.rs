@@ -224,15 +224,24 @@ pub async fn save_block(
             let keys = &event.event_content.keys;
             for key in keys {
                 let address = U256::from_hex(addr.as_ref()).unwrap();
-                let key = U256::from_hex(key.as_ref()).unwrap();
+                let event_key = U256::from_hex(key.as_ref()).unwrap();
                 let num = U64::from_u64(number);
 
-                let key = AddressWithKeyAndNumber::from(address, key, num);
+                let key = AddressWithKeyAndNumber::from(address, event_key.clone(), num);
                 let val = U64::from_u64(receipt.transaction_index as u64);
                 db.events_index.write().await.insert(&key, val)?;
-                tracing::debug!(address = addr.as_ref(), "Event saved");
+                tracing::debug!(
+                    address = addr.as_ref(),
+                    key = event_key.into_str(),
+                    "Event saved"
+                );
             }
         }
+    }
+
+    if number == 0 {
+        // Stop if a genesis block is reached
+        return Ok(None);
     }
 
     let parent_hash = block.block_header.parent_hash.0;

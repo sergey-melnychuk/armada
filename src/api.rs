@@ -38,7 +38,9 @@ pub mod gen {
         pub new_root: Felt,
         #[serde(alias = "parent_block_hash")]
         pub parent_hash: BlockHash,
-        pub sequencer_address: Felt,
+        #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub sequencer_address: Option<Felt>,
         pub timestamp: i64,
     }
 
@@ -765,7 +767,11 @@ pub mod gen {
                 value.to_string()
             };
             if !value.starts_with("0x") {
-                format!("0x{value}")
+                if value.is_empty() {
+                    "0x0".to_string()
+                } else {
+                    format!("0x{value}")
+                }
             } else {
                 value
                     .strip_prefix("0x0")
