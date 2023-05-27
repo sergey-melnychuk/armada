@@ -81,20 +81,25 @@ Each entity has natural primary key, being it a hash, block number or an address
   - source: STATE
   - (32 bytes + 8 bytes) => 32 bytes (really 8 should be enough?)
   - entry: 72 bytes (or 48 bytes)
-- (CONTRACT address, KEY, BLOCK number) => VALUE (STORAGE)
+- (CONTRACT address, KEY, BLOCK number) => VALUE (STATE)
   - source: STATE
   - (32 bytes, 32 bytes, 8 bytes) => 32 bytes
   - entry: 104 bytes
-- (CONTRACT address, BLOCK number) => N * TX hash (ACCOUNT/CONTRACT TXs)
-  - source: STATE
-  - (32 bytes + 8 bytes) => (N = 8 bytes) * 32 bytes
-  - entry: (N + 1) * 32 + 8 + 8 bytes
-    - N=3: 144 bytes
-    - N=10: 368 bytes
 - (CONTRACT address, BLOCK number) => CLASS hash
   - source: CLASS
   - (32 bytes + 8 bytes) => 32 bytes
   - entry: 72 bytes
+
+### Account (TODO: suggest efficient indexing strategy)
+
+Iterating through EVENT, NONCE, STATE and CLASS hashes (range `[(addr,0,0)..(addr,[KEY::MAX,]BLOCK::MAX))`) is enough to pull all data for a given address (account?), but perhabs applying more effient indexing makes sense for a use-case "pull all the data for a given account", especially for accounts with a lot of events.
+
+Using a "block marker" can point to the blocks with account events, then just pulling such blocks and extracting the related events might be a reasonable trade-off between space and time complexity.
+
+- (CONTRACT address, BLOCK number) => () (ACCOUNT)
+  - source: BLOCK, STATE
+  - (32 bytes + 8 bytes) => 0 bytes
+  - entry: 40 bytes
 
 ### Capacity
 
@@ -154,7 +159,7 @@ N=1000:
   - events: bytes(80 x 1000) = ~150 Mb
   - nonce: bytes(72) = 150 Kb
   - storage: bytes(104 x 1000) = 200 Mb
-  - account: bytes(176 x 20) = 6884 Kb
+  - ~~account: bytes(176 x 20) = 6884 Kb~~
   - class: bytes(72) = 150 Kb
 - TOTAL: 150 + 360 Mb (data=~30%)
 
@@ -166,7 +171,7 @@ N=10k:
   - events: bytes(80 x 1000) = ~1500 Mb
   - nonce: bytes(72) = 1415 Kb
   - storage: bytes(104 x 1000) = ~2000 Mb
-  - account: bytes(176 x 20) = 69 Mb
+  - ~~account: bytes(176 x 20) = 69 Mb~~
   - class: bytes(72) = 1415 Kb
 - TOTAL: 1500 + 3600 Mb (data=~30%)
 
@@ -178,7 +183,7 @@ N=100k:
   - events: bytes(80 x 1000) = ~15 Gb
   - nonce: bytes(72) = 15 Mb
   - storage: bytes(104 x 1000) = 20 Gb
-  - account: bytes(176 x 20) = 7 Mb
+  - ~~account: bytes(176 x 20) = 7 Mb~~
   - class: bytes(72) = 15 Mb
 - TOTAL: 15 + 36 Gb (data=~30%)
 
@@ -190,7 +195,7 @@ N=1M:
   - events: bytes(80 x 1000) = ~160 Gb
   - nonce: bytes(72) = 138 Mb
   - storage: bytes(104) = ~200 Gb
-  - account: bytes(448) = ~7 Mb
+  - ~~account: bytes(448) = ~7 Mb~~
   - class: bytes(72) = 138 Mb
 - TOTA: 150 + 368 Gb (data=~30%)
 
