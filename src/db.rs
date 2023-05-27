@@ -25,6 +25,8 @@ pub struct Storage {
     pub states_index: Arc<RwLock<Store<AddressWithKeyAndNumber, U256>>>,
     pub nonces_index: Arc<RwLock<Store<AddressAndNumber, U256>>>,
     pub events_index: Arc<RwLock<Store<AddressWithKeyAndNumber, U64>>>,
+    pub classes: DirRepo<dto::Class>,
+    pub classes_index: Arc<RwLock<Store<AddressAndNumber, U256>>>,
 }
 
 pub struct BlockAndIndex([u8; 40]);
@@ -172,6 +174,16 @@ impl Storage {
         let nonces_index = Store::new(&path);
         let nonces_index = Arc::new(RwLock::new(nonces_index));
 
+        let mut path = base.to_owned();
+        path.push("class");
+        let classes = DirRepo::new(&path);
+
+        let mut path = base.to_owned();
+        path.push("class");
+        path.push("index.yak");
+        let classes_index = Store::new(&path);
+        let classes_index = Arc::new(RwLock::new(classes_index));
+
         Self {
             blocks,
             blocks_index,
@@ -180,6 +192,8 @@ impl Storage {
             states_index,
             nonces_index,
             events_index,
+            classes,
+            classes_index,
         }
     }
 }

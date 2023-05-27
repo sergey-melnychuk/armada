@@ -66,4 +66,11 @@ impl SeqApi for TestSeq {
     ) -> anyhow::Result<armada::seq::dto::StateUpdate> {
         anyhow::bail!("State Update not found");
     }
+
+    async fn get_class_by_hash(
+        &self,
+        _block_hash: &str,
+    ) -> anyhow::Result<armada::seq::dto::Class> {
+        anyhow::bail!("Class not found");
+    }
 }

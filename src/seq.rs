@@ -53,6 +53,9 @@ pub mod dto {
         pub address: Felt,
         pub class_hash: Felt,
     }
+
+    // TODO: add Class DTO definition
+    pub type Class = serde_json::Value;
 }
 
 #[async_trait::async_trait]
@@ -65,7 +68,7 @@ pub trait SeqApi: Send + Sync + Clone + 'static {
     async fn get_state_by_number(&self, block_number: u64) -> anyhow::Result<dto::StateUpdate>;
     async fn get_state_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::StateUpdate>;
 
-    // TODO: get_class_by_hash, dto::Class
+    async fn get_class_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::Class>;
 }
 
 #[async_trait::async_trait]
@@ -119,6 +122,15 @@ impl SeqApi for SeqClient {
         self.get(
             "/feeder_gateway/get_state_update",
             &format!("blockHash={}", block_hash),
+            identity,
+        )
+        .await
+    }
+
+    async fn get_class_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::Class> {
+        self.get(
+            "/feeder_gateway/get_class_by_hash",
+            &format!("classHash={}", block_hash),
             identity,
         )
         .await

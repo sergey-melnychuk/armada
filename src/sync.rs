@@ -311,7 +311,33 @@ pub async fn save_state(
         }
     }
 
-    // TODO: handle deployed/declared/replaces/... classes
+    let classes = state
+        .state_diff
+        .deployed_contracts
+        .into_iter()
+        .map(|deployed| (deployed.address, deployed.class_hash))
+        .chain(
+            state
+                .state_diff
+                .replaced_classes
+                .into_iter()
+                .map(|replaced| (replaced.address, replaced.class_hash)),
+        );
+
+    for (addr, hash) in classes {
+        let address = U256::from_hex(addr.as_ref()).unwrap();
+        let number = U64::from_u64(number);
+        let key = AddressAndNumber::from(address, number);
+        let val = U256::from_hex(hash.as_ref())?;
+        db.classes_index.write().await.insert(&key, val)?;
+        tracing::debug!(
+            address = key.address().into_str(),
+            hash = hash.as_ref(),
+            "Class saved"
+        );
+    }
+
+    // TODO: how to handle [old_]declared_contracts?
 
     Ok(None)
 }
