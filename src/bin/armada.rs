@@ -38,14 +38,6 @@ async fn main() -> anyhow::Result<()> {
     let db = Storage::new(storage_path);
     let shared = Shared::default();
 
-    let (lo, hi) = {
-        let idx = db.blocks_index.read().await;
-        let min = idx.min()?.unwrap_or_default().into_u64();
-        let max = idx.max()?.unwrap_or_default().into_u64();
-        (min, max)
-    };
-    tracing::info!(lo, hi, "Sycned blocks");
-
     let ctx = Context::new(eth, seq, shared, db, config);
     let source = Source::new(ctx.clone());
     source.add("uptime", sync::poll_uptime, SECOND).await;
@@ -54,6 +46,12 @@ async fn main() -> anyhow::Result<()> {
     let tx = source.tx();
     let syncer = armada::sync::sync(source, sync::handler).await;
 
+    let (lo, hi) = {
+        let idx = ctx.db.blocks_index.read().await;
+        let min = idx.min()?.unwrap_or_default().into_u64();
+        let max = idx.max()?.unwrap_or_default().into_u64();
+        (min, max)
+    };
     if lo > 0 {
         use armada::db::Repo;
         let key = U64::from_u64(lo);
@@ -62,12 +60,47 @@ async fn main() -> anyhow::Result<()> {
         let lo_parent_hash = lo_block.block_header.parent_hash.0;
         tx.send(Event::PullBlock(lo_parent_hash)).await.ok();
     }
+    tracing::info!(synced=?(lo, hi), "Sync running");
+
+    let done = is_done::is_done(ctx.db.blocks_index.clone());
 
     let addr: SocketAddr = rpc_bind_addr.parse()?;
     let (addr, server) = armada::rpc::serve(&addr, ctx).await;
     tracing::info!(at=?addr, "RPC server listening");
-    server.done().await;
-    syncer.done().await;
 
+    done.await;
+    syncer.stop();
+    server.stop();
+
+    syncer.done().await;
+    server.done().await;
+
+    tracing::warn!("Armada is out :micdrop:");
     Ok(())
+}
+
+pub mod is_done {
+    use std::{sync::Arc, time::Duration};
+
+    use armada::util::{U256, U64};
+    use tokio::sync::RwLock;
+    use yakvdb::typed::{DB, Store};
+
+    pub async fn is_done(index: Arc<RwLock<Store<U64, U256>>>) {
+        let delay = 5 * Duration::from_secs(60);
+        tokio::spawn(async move {
+            loop {
+                if let Some(min) = index.read().await.min()? {
+                    if min.into_u64() == 0 {
+                        tracing::info!("Sync is complete");
+                        break;
+                    }
+                }
+                tokio::time::sleep(delay).await;
+            }
+            Ok::<_, anyhow::Error>(())
+        }).await
+        .map(|_| ())
+        .ok();
+    }
 }
