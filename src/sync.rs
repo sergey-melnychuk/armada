@@ -381,7 +381,7 @@ where
     let mut events = Vec::new();
     match event {
         Event::Uptime { seconds } => {
-            if seconds % 60 == 0 {
+            if seconds > 0 && seconds % 60 == 0 {
                 tracing::info!(seconds, "uptime");
             }
         }
