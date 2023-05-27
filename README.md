@@ -27,7 +27,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
       - [x] dto mapping
       - [x] nonce index
       - [x] store index
-    - [ ] classes
+    - [x] classes
     - [ ] ~~accounts~~
   - [x] sync testkit
 - [ ] Storage
@@ -41,8 +41,6 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [ ] snapshot?
 - [ ] Testing
   - [ ] make seq & eth tests hermetic ([httpmock](https://docs.rs/httpmock/latest/httpmock/))
-- [x] Single shared context
-  - effectively a manual "dependency injection"
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
 - [ ] JSON-RPC API methods impl:
   - [x] `starknet_getBlockWithTxHashes`
@@ -52,25 +50,25 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [x] `starknet_getTransactionByHash`
   - [x] `starknet_getTransactionByBlockIdAndIndex`
   - [x] `starknet_getTransactionReceipt`
-  - [ ] `starknet_getClass`
-  - [ ] `starknet_getClassHashAt`
-  - [ ] `starknet_getClassAt`
+  - [x] `starknet_getClass`
+  - [x] `starknet_getClassHashAt`
+  - [x] `starknet_getClassAt`
   - [x] `starknet_getBlockTransactionCount`
-  - [ ] `starknet_call` !
-  - [ ] `starknet_estimateFee`  !
+  - [ ] ~~`starknet_call`~~ (needs SDK)
+  - [ ] ~~`starknet_estimateFee`~~ (needs SDK)
   - [ ] `starknet_blockNumber`
   - [ ] `starknet_blockHashAndNumber`
   - [ ] `starknet_chainId`
-  - [ ] ~~`starknet_pendingTransactions`~~
+  - [ ] ~~`starknet_pendingTransactions`~~ (pending block is ignored)
   - [ ] `starknet_syncing`
   - [x] `starknet_getEvents`
   - [x] `starknet_getNonce`
   - [ ] ~~`starknet_addInvokeTransaction`~~ (proxy call)
   - [ ] ~~`starknet_addDeclareTransaction`~~ (proxy call)
   - [ ] ~~`starknet_addDeployAccountTransaction`~~ (proxy call)
-  - [ ] ~~`starknet_traceTransaction`~~
-  - [ ] ~~`starknet_simulateTransaction`~~
-  - [ ] ~~`starknet_traceBlockTransactions`~~
+  - [ ] ~~`starknet_traceTransaction`~~ (needs SDK)
+  - [ ] ~~`starknet_simulateTransaction`~~ (needs SDK)
+  - [ ] ~~`starknet_traceBlockTransactions`~~ (needs SDK)
 
 ### Relevant Links
 
