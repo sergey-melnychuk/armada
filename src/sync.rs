@@ -157,16 +157,34 @@ where
     let block_number = *block.block_header.block_number.as_ref() as u64;
     let block_hash = block.block_header.block_hash.0.clone();
 
-    // TODO: double-check block status (must be ACCEPTED_ON_{L1,L2})
-    // The isusue with the block (below) is that requested by hash
-    // it returns ABORTED, but requested by number it returns ACCEPTED_ON_L1
-    // 12304/0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd
-    match &block.status {
-        BlockStatus::AcceptedOnL1 | BlockStatus::AcceptedOnL2 => (),
+    let block = match &block.status {
+        BlockStatus::AcceptedOnL1 | BlockStatus::AcceptedOnL2 => block,
         status => {
+            // Double-check block status (must be ACCEPTED_ON_{L1,L2}) and retry.
+            // Some blocks are returned with ABORTED status when queried by hash, 
+            // but then return ACCEPTED_ON_{L1,L2} if queried by the block number.
+            // 
+            // Reproducible with blocks:
+            // mainnet:12304/0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd
+            // mainnet:12302/0x14d51955b90b1d74e9cf22bf3352c6a7d13036203c65da7bee77b9d7a5f6ab7
+            // mainnet:12297/0x3dc5e7fd184af0c07d1a7542d93d0ba933dc355502fa1336ab252589c5b5a38
+            // mainnet:12296/0x5f28108855e545894b750836148d1e65f200c159ad52230155b74b14156a477
             tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?status, "Unexpected block status");
+            let block = {
+                let seq = &ctx.lock().await.seq;
+                seq.get_block_by_number(block_number).await?
+            };
+            match &block.status {
+                BlockStatus::AcceptedOnL1 | BlockStatus::AcceptedOnL2 => {
+                    tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?status, "Block fetch retry OK");
+                }
+                _ => {
+                    tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?status, "Block fetch retry failed");
+                }
+            }
+            block
         }
-    }
+    };
 
     let event = {
         let db = &mut ctx.lock().await.db;
