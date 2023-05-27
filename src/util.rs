@@ -120,7 +120,7 @@ impl Waiter {
         }
     }
 
-    pub async fn stop(&self) {
+    pub fn stop(&self) {
         if self.tx.borrow().is_none() {
             return;
         }
