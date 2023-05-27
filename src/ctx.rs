@@ -469,7 +469,7 @@ where
             })?
             .ok_or(iamgroot::jsonrpc::Error::new(
                 -1,
-                format!("Failed to read block index"),
+                "Failed to read block index".to_string(),
             ))?;
 
         BlockNumber::try_new(num.into_u64() as i64)
@@ -494,7 +494,7 @@ where
             })?
             .ok_or(iamgroot::jsonrpc::Error::new(
                 -1,
-                format!("Failed to read block index"),
+                "Failed to read block index".to_string(),
             ))?;
 
         Ok(BlockHashAndNumberResult {
