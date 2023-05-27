@@ -10,7 +10,7 @@ use crate::{
     db::{AddressAndNumber, AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage},
     eth::EthApi,
     seq::SeqApi,
-    util::{get_txn_receipt, map_state_update, tx_hash, U256, U64},
+    util::{get_txn_receipt, map_class, map_state_update, tx_hash, U256, U64},
 };
 
 #[derive(Clone, Debug)]
@@ -370,25 +370,59 @@ where
     fn getClass(
         &self,
         _block_id: BlockId,
-        _class_hash: Felt,
+        class_hash: Felt,
     ) -> std::result::Result<GetClassResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        // TODO: Class hash does not relly depend on block. Does it?
+
+        let class = self
+            .db
+            .classes
+            .get(class_hash.as_ref())
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to fetch class '{}': {:?}", class_hash.as_ref(), e),
+                )
+            })?
+            .ok_or(crate::api::gen::error::CLASS_HASH_NOT_FOUND)?;
+
+        Ok(map_class(class))
     }
 
     fn getClassHashAt(
         &self,
-        _block_id: BlockId,
-        _contract_address: Address,
+        block_id: BlockId,
+        contract_address: Address,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let block_number = self.get_block_number(block_id)?;
+
+        let address = U256::from_hex(contract_address.0.as_ref()).unwrap();
+        let number = U64::from_u64(block_number);
+        let key = AddressAndNumber::from(address, number);
+        let class_hash: U256 = RUNTIME
+            .block_on(async { self.db.classes_index.read().await.lookup(&key) })
+            .map_err(|_| crate::api::gen::error::CLASS_HASH_NOT_FOUND)?
+            .ok_or(crate::api::gen::error::CLASS_HASH_NOT_FOUND)?;
+
+        let felt = Felt::try_new(&class_hash.into_str()).unwrap();
+        Ok(felt)
     }
 
     fn getClassAt(
         &self,
-        _block_id: BlockId,
-        _contract_address: Address,
+        block_id: BlockId,
+        contract_address: Address,
     ) -> std::result::Result<GetClassAtResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let class_hash = self.getClassHashAt(block_id.clone(), contract_address)?;
+        let class = self.getClass(block_id, class_hash)?;
+        Ok(match class {
+            GetClassResult::ContractClass(contract_class) => {
+                GetClassAtResult::ContractClass(contract_class)
+            }
+            GetClassResult::DeprecatedContractClass(deprecated_contract_class) => {
+                GetClassAtResult::DeprecatedContractClass(deprecated_contract_class)
+            }
+        })
     }
 
     fn getBlockTransactionCount(

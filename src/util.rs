@@ -7,13 +7,14 @@ use tokio::{
 
 use crate::{
     api::gen::{
-        Address, BlockHash, BlockStatus, BlockWithTxs, CommonReceiptProperties,
-        ContractStorageDiffItem, DeclareTxn, DeclareTxnReceipt, DeclareTxnReceiptType,
-        DeclaredClassesItem, DeployAccountTxnReceipt, DeployAccountTxnReceiptType,
-        DeployTxnReceipt, DeployTxnReceiptType, DeployedContractItem, Felt, InvokeTxnReceipt,
-        InvokeTxnReceiptType, L1HandlerTxnReceipt, L1HandlerTxnReceiptType, NoncesItem,
-        PendingStateUpdate, ReplacedClassesItem, StateDiff, StateUpdate, StorageEntriesItem, Txn,
-        TxnHash, TxnReceipt, TxnStatus,
+        Address, BlockHash, BlockStatus, BlockWithTxs, CommonReceiptProperties, ContractClass,
+        ContractClassEntryPoint, ContractStorageDiffItem, DeclareTxn, DeclareTxnReceipt,
+        DeclareTxnReceiptType, DeclaredClassesItem, DeployAccountTxnReceipt,
+        DeployAccountTxnReceiptType, DeployTxnReceipt, DeployTxnReceiptType, DeployedContractItem,
+        Felt, GetClassResult, InvokeTxnReceipt, InvokeTxnReceiptType, L1HandlerTxnReceipt,
+        L1HandlerTxnReceiptType, NoncesItem, PendingStateUpdate, ReplacedClassesItem,
+        SierraEntryPoint, StateDiff, StateUpdate, StorageEntriesItem, Txn, TxnHash, TxnReceipt,
+        TxnStatus,
     },
     seq::dto::{self, DeclaredClass, DeployedContract, ReplacedClass},
 };
@@ -339,6 +340,52 @@ pub fn get_txn_receipt(block: BlockWithTxs, tx_index: usize) -> TxnReceipt {
             r#type: L1HandlerTxnReceiptType::L1Handler,
         }),
     }
+}
+
+pub fn map_class(_class: dto::Class) -> GetClassResult {
+    // TODO: implement mapping
+
+    GetClassResult::ContractClass(ContractClass {
+        abi: Some("abi".to_string()),
+        contract_class_version: "v1".to_string(),
+        entry_points_by_type: ContractClassEntryPoint {
+            constructor: Some(vec![
+                SierraEntryPoint {
+                    function_idx: Some(101),
+                    selector: Some(Felt::try_new("0x102").unwrap()),
+                },
+                SierraEntryPoint {
+                    function_idx: Some(103),
+                    selector: Some(Felt::try_new("0x104").unwrap()),
+                },
+            ]),
+            external: Some(vec![
+                SierraEntryPoint {
+                    function_idx: Some(201),
+                    selector: Some(Felt::try_new("0x202").unwrap()),
+                },
+                SierraEntryPoint {
+                    function_idx: Some(203),
+                    selector: Some(Felt::try_new("0x204").unwrap()),
+                },
+            ]),
+            l1_handler: Some(vec![
+                SierraEntryPoint {
+                    function_idx: Some(301),
+                    selector: Some(Felt::try_new("0x302").unwrap()),
+                },
+                SierraEntryPoint {
+                    function_idx: Some(303),
+                    selector: Some(Felt::try_new("0x304").unwrap()),
+                },
+            ]),
+        },
+        sierra_program: vec![
+            Felt::try_new("0x1").unwrap(),
+            Felt::try_new("0x2").unwrap(),
+            Felt::try_new("0x3").unwrap(),
+        ],
+    })
 }
 
 #[cfg(test)]
