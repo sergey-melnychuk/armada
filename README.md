@@ -30,16 +30,18 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
     - [x] classes
     - [ ] ~~accounts~~
   - [x] sync testkit
-- [ ] Storage
+- [x] Storage
   - [x] local
   - [x] gzip
   - [ ] async?
-  - [ ] remote (AWS S3)
+  - [ ] remote? (AWS S3)
 - [x] Indices
   - [x] local ([yakvdb](https://github.com/sergey-melnychuk/yakvdb))
-  - [ ] remote (AWS DynamoDB)
-  - [ ] snapshot?
-- [ ] Testing
+  - [ ] remote? (AWS DynamoDB)
+- [x] Testing
+  - [x] basic RPC test
+  - [x] basic sync test
+  - [x] mock-free testkit
   - [ ] make seq & eth tests hermetic ([httpmock](https://docs.rs/httpmock/latest/httpmock/))
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
 - [ ] JSON-RPC API methods impl:
