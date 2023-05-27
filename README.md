@@ -6,6 +6,8 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
 [Design Doc](/doc/design-doc.md)
 
+[Results](/doc/results.md)
+
 ### Status
 
 - [x] Sequencer client
