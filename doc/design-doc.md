@@ -316,23 +316,3 @@ curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getEvents","params":{"filter":{"address":"0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8","from_block":{"block_number":24958},"to_block":{"block_number":24998},"keys":[["0x134692b230b9e1ffa39098904722134159652b09c5bc41d88d6698779d228ff"]],"chunk_size":100}},"id":1}' http://127.0.0.1:9000/rpc/v0.3
 
 ```
-
-#### Result
-
-2023-05-26 10:14 GMT+0 - mainnet partial sync
-
-```
-[4.0K]  ~/.armada/mainnet/
-├── [7.5M]  block
-│   ├── <64327 files: {hash}.json.gzip>
-│   ├── [726M]  event.yak
-│   └── [8.5M]  index.yak
-├── [7.5M]  state
-│   ├── <64325 files: {hash}.json.gzip>
-│   ├── [3.1G]  index.yak
-│   └── [1.3G]  nonce.yak
-└── [4.0K]  tx
-    └── [1.8G]  index.yak
-
-TOTAL: 14G
-```
