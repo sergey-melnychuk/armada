@@ -458,21 +458,19 @@ where
     }
 
     fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
-        let num = RUNTIME.block_on(async {
-            let idx = self.db.blocks_index.read().await;
-            let max = idx.max()?;
-            Ok(max)
-        })
-        .map_err(|e: anyhow::Error| {
-            iamgroot::jsonrpc::Error::new(
+        let num = RUNTIME
+            .block_on(async {
+                let idx = self.db.blocks_index.read().await;
+                let max = idx.max()?;
+                Ok(max)
+            })
+            .map_err(|e: anyhow::Error| {
+                iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+            })?
+            .ok_or(iamgroot::jsonrpc::Error::new(
                 -1,
-                format!("Failed to read block index: {e:?}"),
-            )
-        })?
-        .ok_or(iamgroot::jsonrpc::Error::new(
-            -1,
-            format!("Failed to read block index"),
-        ))?;
+                format!("Failed to read block index"),
+            ))?;
 
         BlockNumber::try_new(num.into_u64() as i64)
     }
@@ -480,26 +478,24 @@ where
     fn blockHashAndNumber(
         &self,
     ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error> {
-        let (num, hash) = RUNTIME.block_on(async {
-            let idx = self.db.blocks_index.read().await;
-            let max = idx.max()?;
-            let max_hash = if let Some(max) = max.as_ref() {
-                idx.lookup(max)?
-            } else {
-                None
-            };
-            Ok(max.zip(max_hash))
-        })
-        .map_err(|e: anyhow::Error| {
-            iamgroot::jsonrpc::Error::new(
+        let (num, hash) = RUNTIME
+            .block_on(async {
+                let idx = self.db.blocks_index.read().await;
+                let max = idx.max()?;
+                let max_hash = if let Some(max) = max.as_ref() {
+                    idx.lookup(max)?
+                } else {
+                    None
+                };
+                Ok(max.zip(max_hash))
+            })
+            .map_err(|e: anyhow::Error| {
+                iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+            })?
+            .ok_or(iamgroot::jsonrpc::Error::new(
                 -1,
-                format!("Failed to read block index: {e:?}"),
-            )
-        })?
-        .ok_or(iamgroot::jsonrpc::Error::new(
-            -1,
-            format!("Failed to read block index"),
-        ))?;
+                format!("Failed to read block index"),
+            ))?;
 
         Ok(BlockHashAndNumberResult {
             block_hash: Some(BlockHash(Felt::try_new(&hash.into_str())?)),
@@ -521,28 +517,26 @@ where
     }
 
     fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
-        let (lo, lo_hash, hi, hi_hash) = RUNTIME.block_on(async {
-            let idx = self.db.blocks_index.read().await;
-            let min = idx.min()?;
-            let max = idx.max()?;
-            let min_hash = if let Some(min) = min.as_ref() {
-                idx.lookup(min)?
-            } else {
-                None
-            };
-            let max_hash = if let Some(max) = max.as_ref() {
-                idx.lookup(max)?
-            } else {
-                None
-            };
-            Ok((min, min_hash, max, max_hash))
-        })
-        .map_err(|e: anyhow::Error| {
-            iamgroot::jsonrpc::Error::new(
-                -1,
-                format!("Failed to read block index: {e:?}"),
-            )
-        })?;
+        let (lo, lo_hash, hi, hi_hash) = RUNTIME
+            .block_on(async {
+                let idx = self.db.blocks_index.read().await;
+                let min = idx.min()?;
+                let max = idx.max()?;
+                let min_hash = if let Some(min) = min.as_ref() {
+                    idx.lookup(min)?
+                } else {
+                    None
+                };
+                let max_hash = if let Some(max) = max.as_ref() {
+                    idx.lookup(max)?
+                } else {
+                    None
+                };
+                Ok((min, min_hash, max, max_hash))
+            })
+            .map_err(|e: anyhow::Error| {
+                iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+            })?;
         let (lo, lo_hash, hi, hi_hash) = match (lo, lo_hash, hi, hi_hash) {
             (Some(lo), Some(lo_hash), Some(hi), Some(hi_hash)) => (lo, lo_hash, hi, hi_hash),
             _ => return Ok(SyncingSyncing::Boolean(false)),
