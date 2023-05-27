@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::{sync::Arc, time::Duration};
 
 use futures::Future;
@@ -143,7 +144,7 @@ pub async fn pull_block<SEQ, ETH>(
     ctx: Arc<Mutex<Context<ETH, SEQ>>>,
     hash: Felt,
     events: &mut Vec<Event>,
-) -> anyhow::Result<()>
+) -> anyhow::Result<u64>
 where
     SEQ: SeqApi,
     ETH: EthApi,
@@ -161,9 +162,9 @@ where
         BlockStatus::AcceptedOnL1 | BlockStatus::AcceptedOnL2 => block,
         status => {
             // Double-check block status (must be ACCEPTED_ON_{L1,L2}) and retry.
-            // Some blocks are returned with ABORTED status when queried by hash, 
+            // Some blocks are returned with ABORTED status when queried by hash,
             // but then return ACCEPTED_ON_{L1,L2} if queried by the block number.
-            // 
+            //
             // Reproducible with blocks:
             // mainnet:12304/0x7cebd154f03c5f838999351e2a7f5f1346ea161d355155d424e7b4efda52ccd
             // mainnet:12302/0x14d51955b90b1d74e9cf22bf3352c6a7d13036203c65da7bee77b9d7a5f6ab7
@@ -194,7 +195,7 @@ where
         events.push(event);
     }
 
-    tracing::info!(
+    tracing::debug!(
         number = block_number,
         hash = block_hash.as_ref(),
         "Block saved"
@@ -204,21 +205,28 @@ where
         let seq = &ctx.lock().await.seq;
         seq.get_state_by_hash(hash.as_ref()).await?
     };
+    let classes = get_classes(&state)
+        .map(|(_, hash)| hash.as_ref().to_string())
+        .collect::<HashSet<_>>();
+    for hash in classes {
+        let class = ctx.lock().await.seq.get_class_by_hash(&hash).await?;
+        ctx.lock().await.db.classes.put(&hash, class)?;
+        tracing::debug!(hash, "Class saved");
+    }
     let event = {
         let db = &mut ctx.lock().await.db;
         save_state(db, hash.clone(), block_number, state).await?
     };
-    if let Some(event) = event {
-        events.push(event);
-    }
-
-    tracing::info!(
+    tracing::debug!(
         number = block_number,
         hash = block_hash.as_ref(),
         "State saved"
     );
 
-    Ok(())
+    if let Some(event) = event {
+        events.push(event);
+    }
+    Ok(block_number)
 }
 
 pub async fn save_block(
@@ -329,20 +337,7 @@ pub async fn save_state(
         }
     }
 
-    let classes = state
-        .state_diff
-        .deployed_contracts
-        .into_iter()
-        .map(|deployed| (deployed.address, deployed.class_hash))
-        .chain(
-            state
-                .state_diff
-                .replaced_classes
-                .into_iter()
-                .map(|replaced| (replaced.address, replaced.class_hash)),
-        );
-
-    for (addr, hash) in classes {
+    for (addr, hash) in get_classes(&state) {
         let address = U256::from_hex(addr.as_ref()).unwrap();
         let number = U64::from_u64(number);
         let key = AddressAndNumber::from(address, number);
@@ -351,13 +346,28 @@ pub async fn save_state(
         tracing::debug!(
             address = key.address().into_str(),
             hash = hash.as_ref(),
-            "Class saved"
+            "Class assigned"
         );
     }
 
     // TODO: how to handle [old_]declared_contracts?
 
     Ok(None)
+}
+
+pub fn get_classes(state: &dto::StateUpdate) -> impl Iterator<Item = (&Felt, &Felt)> + '_ {
+    state
+        .state_diff
+        .deployed_contracts
+        .iter()
+        .map(|deployed| (&deployed.address, &deployed.class_hash))
+        .chain(
+            state
+                .state_diff
+                .replaced_classes
+                .iter()
+                .map(|replaced| (&replaced.address, &replaced.class_hash)),
+        )
 }
 
 pub async fn purge_block(
@@ -386,7 +396,8 @@ where
             }
         }
         Event::PullBlock(hash) => {
-            pull_block(ctx.clone(), hash, &mut events).await?;
+            let number = pull_block(ctx.clone(), hash.clone(), &mut events).await?;
+            tracing::info!(number, hash = hash.as_ref(), "Block done");
         }
         Event::PurgeBlock(number, hash) => {
             tracing::info!(number, hash = hash.as_ref(), "Purging block");
