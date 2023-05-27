@@ -84,7 +84,7 @@ pub mod is_done {
 
     use armada::util::{U256, U64};
     use tokio::sync::RwLock;
-    use yakvdb::typed::{DB, Store};
+    use yakvdb::typed::{Store, DB};
 
     pub async fn is_done(index: Arc<RwLock<Store<U64, U256>>>) {
         let delay = 5 * Duration::from_secs(60);
@@ -99,7 +99,8 @@ pub mod is_done {
                 tokio::time::sleep(delay).await;
             }
             Ok::<_, anyhow::Error>(())
-        }).await
+        })
+        .await
         .map(|_| ())
         .ok();
     }
