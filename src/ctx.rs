@@ -91,7 +91,7 @@ where
             _ => {
                 return Err(iamgroot::jsonrpc::Error::new(
                     -1,
-                    "'Pending' block is not suppoerted".to_string(),
+                    "'Pending' block is not supported".to_string(),
                 ));
             }
         };
@@ -458,27 +458,107 @@ where
     }
 
     fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let num = RUNTIME.block_on(async {
+            let idx = self.db.blocks_index.read().await;
+            let max = idx.max()?;
+            Ok(max)
+        })
+        .map_err(|e: anyhow::Error| {
+            iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Failed to read block index: {e:?}"),
+            )
+        })?
+        .ok_or(iamgroot::jsonrpc::Error::new(
+            -1,
+            format!("Failed to read block index"),
+        ))?;
+
+        BlockNumber::try_new(num.into_u64() as i64)
     }
 
     fn blockHashAndNumber(
         &self,
     ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let (num, hash) = RUNTIME.block_on(async {
+            let idx = self.db.blocks_index.read().await;
+            let max = idx.max()?;
+            let max_hash = if let Some(max) = max.as_ref() {
+                idx.lookup(max)?
+            } else {
+                None
+            };
+            Ok(max.zip(max_hash))
+        })
+        .map_err(|e: anyhow::Error| {
+            iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Failed to read block index: {e:?}"),
+            )
+        })?
+        .ok_or(iamgroot::jsonrpc::Error::new(
+            -1,
+            format!("Failed to read block index"),
+        ))?;
+
+        Ok(BlockHashAndNumberResult {
+            block_hash: Some(BlockHash(Felt::try_new(&hash.into_str())?)),
+            block_number: Some(BlockNumber::try_new(num.into_u64() as i64)?),
+        })
     }
 
     fn chainId(&self) -> std::result::Result<ChainId, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        ChainId::try_new("0xCAFEBABE") // TODO: make it right
     }
 
     fn pendingTransactions(
         &self,
     ) -> std::result::Result<PendingTransactionsResult, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        Err(iamgroot::jsonrpc::Error::new(
+            -1,
+            "'Pending' block is not supported".to_string(),
+        ))
     }
 
     fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
-        not_implemented()
+        let (lo, lo_hash, hi, hi_hash) = RUNTIME.block_on(async {
+            let idx = self.db.blocks_index.read().await;
+            let min = idx.min()?;
+            let max = idx.max()?;
+            let min_hash = if let Some(min) = min.as_ref() {
+                idx.lookup(min)?
+            } else {
+                None
+            };
+            let max_hash = if let Some(max) = max.as_ref() {
+                idx.lookup(max)?
+            } else {
+                None
+            };
+            Ok((min, min_hash, max, max_hash))
+        })
+        .map_err(|e: anyhow::Error| {
+            iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Failed to read block index: {e:?}"),
+            )
+        })?;
+        let (lo, lo_hash, hi, hi_hash) = match (lo, lo_hash, hi, hi_hash) {
+            (Some(lo), Some(lo_hash), Some(hi), Some(hi_hash)) => (lo, lo_hash, hi, hi_hash),
+            _ => return Ok(SyncingSyncing::Boolean(false)),
+        };
+        let hi_hash = BlockHash(Felt::try_new(&hi_hash.into_str())?);
+        let hi_num = NumAsHex::try_new(&hi.into_str())?;
+        let lo_hash = BlockHash(Felt::try_new(&lo_hash.into_str())?);
+        let lo_num = NumAsHex::try_new(&lo.into_str())?;
+        Ok(SyncingSyncing::SyncStatus(SyncStatus {
+            current_block_hash: hi_hash.clone(),
+            current_block_num: hi_num.clone(),
+            highest_block_hash: hi_hash,
+            highest_block_num: hi_num,
+            starting_block_hash: lo_hash,
+            starting_block_num: lo_num,
+        }))
     }
 
     fn getEvents(

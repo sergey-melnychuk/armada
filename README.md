@@ -56,11 +56,11 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [x] `starknet_getBlockTransactionCount`
   - [ ] ~~`starknet_call`~~ (needs SDK)
   - [ ] ~~`starknet_estimateFee`~~ (needs SDK)
-  - [ ] `starknet_blockNumber`
-  - [ ] `starknet_blockHashAndNumber`
-  - [ ] `starknet_chainId`
+  - [x] `starknet_blockNumber`
+  - [x] `starknet_blockHashAndNumber`
+  - [x] `starknet_chainId`
   - [ ] ~~`starknet_pendingTransactions`~~ (pending block is ignored)
-  - [ ] `starknet_syncing`
+  - [x] `starknet_syncing`
   - [x] `starknet_getEvents`
   - [x] `starknet_getNonce`
   - [ ] ~~`starknet_addInvokeTransaction`~~ (proxy call)

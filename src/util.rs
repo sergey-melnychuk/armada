@@ -72,6 +72,14 @@ impl U64 {
     pub fn into_u64(&self) -> u64 {
         u64::from_be_bytes(self.0)
     }
+
+    pub fn into_str(&self) -> String {
+        let unpadded = hex::encode(self.0)
+            .chars()
+            .skip_while(|c| c == &'0')
+            .collect::<String>();
+        format!("0x{}", unpadded)
+    }
 }
 
 impl AsRef<[u8]> for U64 {
