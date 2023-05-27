@@ -194,7 +194,6 @@ where
     if let Some(event) = event {
         events.push(event);
     }
-
     tracing::debug!(
         number = block_number,
         hash = block_hash.as_ref(),
@@ -213,7 +212,7 @@ where
         ctx.lock().await.db.classes.put(&hash, class)?;
         tracing::debug!(hash, "Class saved");
     }
-    let event = {
+    {
         let db = &mut ctx.lock().await.db;
         save_state(db, hash.clone(), block_number, state).await?
     };
@@ -223,9 +222,6 @@ where
         "State saved"
     );
 
-    if let Some(event) = event {
-        events.push(event);
-    }
     Ok(block_number)
 }
 
@@ -309,7 +305,7 @@ pub async fn save_state(
     hash: Felt,
     number: u64,
     state: dto::StateUpdate,
-) -> anyhow::Result<Option<Event>> {
+) -> anyhow::Result<()> {
     tokio::task::block_in_place(|| db.states.put(hash.as_ref(), state.clone()))?;
 
     for (addr, nonce) in &state.state_diff.nonces {
@@ -356,8 +352,7 @@ pub async fn save_state(
     }
 
     // TODO: how to handle [old_]declared_contracts?
-
-    Ok(None)
+    Ok(())
 }
 
 pub fn get_classes(state: &dto::StateUpdate) -> impl Iterator<Item = (&Felt, &Felt)> + '_ {
