@@ -291,6 +291,11 @@ pub async fn save_block(
 
     let saved_parent_hash = saved_parent_hash.unwrap();
     if parent_hash.as_ref() != &saved_parent_hash.into_str() {
+        tracing::warn!(
+            existing = saved_parent_hash.into_str(),
+            received = parent_hash.as_ref(),
+            "Reorg detected"
+        );
         // A reorg is detected, Nth block's parent_hash is different from stored (N-1)th block hash.
         // TODO: "unsave" saved `number-1` block and pull the correct one instead of it: `parent_hash`.
         return Ok(Some(Event::PurgeBlock(number - 1, parent_hash)));
@@ -374,9 +379,14 @@ pub async fn purge_block(
     _db: &mut Storage,
     _number: u64,
     hash: Felt,
-) -> anyhow::Result<Option<Event>> {
+    events: &mut Vec<Event>,
+) -> anyhow::Result<()> {
     // TODO: unsave all changes related to the block
-    Ok(Some(Event::PullBlock(hash)))
+    // Currently re-pulling the block will restore the chain integrity,
+    // but indexed data from "purged" block will remain available.
+
+    events.push(Event::PullBlock(hash));
+    Ok(())
 }
 
 pub async fn handler<ETH, SEQ>(
@@ -400,12 +410,9 @@ where
             tracing::info!(number, hash = hash.as_ref(), "Block done");
         }
         Event::PurgeBlock(number, hash) => {
-            tracing::info!(number, hash = hash.as_ref(), "Purging block");
             let db = &mut ctx.lock().await.db;
-            let maybe_event = purge_block(db, number, hash).await?;
-            if let Some(event) = maybe_event {
-                events.push(event);
-            }
+            purge_block(db, number, hash.clone(), &mut events).await?;
+            tracing::warn!(number, hash = hash.as_ref(), "Block purged");
         }
         Event::Head(number, hash) => {
             tracing::info!(number, hash = hash.as_ref(), "L2 head");

@@ -12,7 +12,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
 - [x] Sequencer client
 - [x] Ethereum client
-- [ ] Sync
+- [x] Sync
   - [x] event producers
     - [x] parent block
     - [x] pending block
@@ -22,7 +22,9 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
     - [x] save block (+index)
     - [x] index transactions
     - [x] events
-    - [ ] reorg (purge block)
+    - [x] reorg
+      - restore chain
+      - keep the data
     - [x] state update
       - [x] dto mapping
       - [x] nonce index
@@ -44,7 +46,7 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
   - [x] mock-free testkit
   - [ ] make seq & eth tests hermetic ([httpmock](https://docs.rs/httpmock/latest/httpmock/))
 - [x] JSON-RPC API with [iamgroot](https://github.com/sergey-melnychuk/iamgroot)
-- [ ] JSON-RPC API methods impl:
+- [x] JSON-RPC API methods impl:
   - [x] `starknet_getBlockWithTxHashes`
   - [x] `starknet_getBlockWithTxs`
   - [x] `starknet_getStateUpdate`
