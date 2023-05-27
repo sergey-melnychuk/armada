@@ -10,6 +10,7 @@ I consider Armada experiment a success. During just 2 weeks multiple design sugg
 NOTE!: Class data is missing in this sync.
 
 Total time: **27h 15m**
+
 Total size: **24G**
 
 ```
