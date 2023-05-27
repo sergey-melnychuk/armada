@@ -85,3 +85,11 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 ### Misc
 
 Count LoC: `find src tests -type f -name "*.rs" | xargs grep . | wc -l`
+
+### *
+
+WIP = Work In Progress
+
+PoC = Proof of Concept
+
+LoC = Lines of Code
