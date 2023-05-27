@@ -242,7 +242,7 @@ TODO: Describe how multiple nodes can work together (master-slave, hash-ring, et
 
 ### P2P
 
-TODO: Describe how peer-to-peer data propagation might work.
+See [P2P](/docs/p2p.md).
 
 ## OTHER
 
