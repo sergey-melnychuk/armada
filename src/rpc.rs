@@ -1,6 +1,11 @@
 use std::net::SocketAddr;
 
-use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
+use axum::{
+    extract::State,
+    response::{Html, IntoResponse},
+    routing::{get, post},
+    Json, Router,
+};
 use iamgroot::jsonrpc;
 use serde::{Deserialize, Serialize};
 
@@ -72,6 +77,28 @@ where
     }
 }
 
+async fn handle_status<ETH, SEQ>(
+    State(state): State<Context<ETH, SEQ>>,
+) -> Result<impl IntoResponse, RpcError>
+where
+    ETH: EthApi,
+    SEQ: SeqApi,
+{
+    use yakvdb::typed::DB;
+
+    let (lo, hi) = {
+        let idx = state.db.blocks_index.read().await;
+        let min = idx.min()?.unwrap_or_default().into_u64();
+        let max = idx.max()?.unwrap_or_default().into_u64();
+        (min, max)
+    };
+
+    Ok(Html(format!(
+        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sync Status</title></head><body><h1>{} / {}</h1></body></html>"#,
+        lo, hi
+    )))
+}
+
 pub async fn serve<ETH, SEQ>(addr: &SocketAddr, ctx: Context<ETH, SEQ>) -> (SocketAddr, Waiter)
 where
     ETH: EthApi,
@@ -79,6 +106,7 @@ where
 {
     let app = Router::new()
         .route("/rpc/v0.3", post(handle_request))
+        .route("/sync/status", get(handle_status))
         .with_state(ctx);
 
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
