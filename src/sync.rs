@@ -403,6 +403,16 @@ where
         Event::PullBlock(hash) => {
             let number = pull_block(ctx.clone(), hash.clone(), &mut events).await?;
             tracing::info!(number, hash = hash.as_ref(), "Block done");
+            {
+                let ctx = ctx.lock().await;
+                let sync = &mut ctx.shared.lock().await.sync;
+                sync.lo = if sync.lo == 0 {
+                    number
+                } else {
+                    number.min(sync.lo)
+                };
+                sync.hi = number.max(sync.hi);
+            }
         }
         Event::PurgeBlock(number, hash) => {
             let db = &mut ctx.lock().await.db;

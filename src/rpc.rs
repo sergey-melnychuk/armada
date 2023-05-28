@@ -84,17 +84,13 @@ where
     ETH: EthApi,
     SEQ: SeqApi,
 {
-    use yakvdb::typed::DB;
-
     let (lo, hi) = {
-        let idx = state.db.blocks_index.read().await;
-        let min = idx.min()?.unwrap_or_default().into_u64();
-        let max = idx.max()?.unwrap_or_default().into_u64();
-        (min, max)
+        let sync = &mut state.shared.lock().await.sync;
+        (sync.lo, sync.hi)
     };
 
     Ok(Html(format!(
-        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sync Status</title></head><body><h1>{} / {}</h1></body></html>"#,
+        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sync Status</title></head><body><h1>{}..{}</h1></body></html>"#,
         lo, hi
     )))
 }

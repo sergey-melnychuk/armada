@@ -13,27 +13,18 @@ use crate::{
     util::{get_txn_receipt, map_class, map_state_update, tx_hash, U256, U64},
 };
 
-#[derive(Clone, Debug)]
-pub struct Head {
-    pub block_number: u64,
-    pub block_hash: Felt,
-}
-
-impl Default for Head {
-    fn default() -> Self {
-        Self {
-            block_number: 0,
-            block_hash: Felt::try_new("0x0").unwrap(),
-        }
-    }
+#[derive(Clone, Debug, Default)]
+pub struct Sync {
+    pub lo: u64,
+    pub hi: u64,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct Shared {
-    pub head: Head,
+    pub sync: Sync,
 }
 
-#[allow(clippy::declare_interior_mutable_const)] // clippy, this time just fuck off
+#[allow(clippy::declare_interior_mutable_const)] // clippy, please let me have this one
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
 
 #[derive(Clone)]
