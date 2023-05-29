@@ -177,10 +177,10 @@ where
             };
             match &block.status {
                 BlockStatus::AcceptedOnL1 | BlockStatus::AcceptedOnL2 => {
-                    tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?status, "Block fetch retry OK");
+                    tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?block.status, "Block fetch retry OK");
                 }
                 _ => {
-                    tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?status, "Block fetch retry failed");
+                    tracing::warn!(number = block_number, hash = block_hash.as_ref(), status=?block.status, "Block fetch retry failed");
                 }
             }
             block
