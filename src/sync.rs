@@ -140,17 +140,14 @@ pub enum Event {
     Uptime { seconds: u64 },
 }
 
-pub async fn pull_block<SEQ, ETH>(
+pub async fn fetch_block<SEQ, ETH>(
     ctx: Arc<Mutex<Context<ETH, SEQ>>>,
-    hash: Felt,
-    events: &mut Vec<Event>,
-) -> anyhow::Result<u64>
+    hash: &Felt,
+) -> anyhow::Result<BlockWithTxs>
 where
     SEQ: SeqApi,
     ETH: EthApi,
 {
-    tracing::debug!(hash = hash.as_ref(), "Pulling block");
-
     let block = {
         let seq = &ctx.lock().await.seq;
         seq.get_block_by_hash(hash.as_ref()).await?
@@ -187,13 +184,31 @@ where
         }
     };
 
-    let event = {
+    Ok(block)
+}
+
+pub async fn pull_block<SEQ, ETH>(
+    ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+    hash: Felt,
+    events: &mut Vec<Event>,
+) -> anyhow::Result<u64>
+where
+    SEQ: SeqApi,
+    ETH: EthApi,
+{
+    tracing::debug!(hash = hash.as_ref(), "Pulling block");
+
+    let block = fetch_block(ctx.clone(), &hash).await?;
+    let block_number = *block.block_header.block_number.as_ref() as u64;
+    let block_hash = block.block_header.block_hash.0.clone();
+
+    if let Some(event) = {
         let db = &mut ctx.lock().await.db;
         save_block(db, hash.clone(), block).await?
-    };
-    if let Some(event) = event {
+    } {
         events.push(event);
     }
+
     tracing::debug!(
         number = block_number,
         hash = block_hash.as_ref(),
@@ -204,18 +219,33 @@ where
         let seq = &ctx.lock().await.seq;
         seq.get_state_by_hash(hash.as_ref()).await?
     };
+
     let classes = get_classes(&state)
         .map(|(_, hash)| hash.as_ref().to_string())
         .collect::<HashSet<_>>();
-    for hash in classes {
-        let class = ctx.lock().await.seq.get_class_by_hash(&hash).await?;
-        ctx.lock().await.db.classes.put(&hash, class).await?;
-        tracing::debug!(hash, "Class saved");
-    }
+
+    let handler = {
+        let ctx = ctx.clone();
+        tokio::spawn(async move {
+            for hash in classes {
+                if ctx.lock().await.db.classes.has(&hash).await? {
+                    continue;
+                }
+                let class = ctx.lock().await.seq.get_class_by_hash(&hash).await?;
+                ctx.lock().await.db.classes.put(&hash, class).await?;
+                tracing::debug!(hash, "Class saved");
+            }
+            Ok::<(), anyhow::Error>(())
+        })
+    };
+
     {
         let db = &mut ctx.lock().await.db;
         save_state(db, hash.clone(), block_number, state).await?
     };
+
+    handler.await??;
+
     tracing::debug!(
         number = block_number,
         hash = block_hash.as_ref(),
@@ -225,6 +255,7 @@ where
     Ok(block_number)
 }
 
+// TODO: avoid function-scoped lock on Storage
 pub async fn save_block(
     db: &mut Storage,
     hash: Felt,
@@ -237,6 +268,7 @@ pub async fn save_block(
     let val = U256::from_hex(hash.as_ref())?;
     db.blocks_index.write().await.insert(&key, val)?;
 
+    // TODO: spawn
     for (idx, tx) in block.block_body_with_txs.transactions.iter().enumerate() {
         let index = U64::from_u64(idx as u64);
         let block = U256::from_hex(hash.as_ref()).unwrap();
@@ -247,6 +279,7 @@ pub async fn save_block(
         tracing::debug!(hash = key.into_str(), "TX saved");
     }
 
+    // TODO: spawn
     for receipt in &block.receipts {
         for event in &receipt.events {
             let addr = &event.from_address.0;
@@ -300,6 +333,7 @@ pub async fn save_block(
     Ok(None)
 }
 
+// TODO: avoid function-scoped lock on Storage
 pub async fn save_state(
     db: &mut Storage,
     hash: Felt,
@@ -308,6 +342,7 @@ pub async fn save_state(
 ) -> anyhow::Result<()> {
     db.states.put(hash.as_ref(), state.clone()).await?;
 
+    // TODO: spawn
     for (addr, nonce) in &state.state_diff.nonces {
         let address = U256::from_hex(addr.as_ref()).unwrap();
         let number = U64::from_u64(number);
@@ -321,6 +356,7 @@ pub async fn save_state(
         );
     }
 
+    // TODO: spawn
     for (addr, kvs) in &state.state_diff.storage_diffs {
         let address = U256::from_hex(addr.as_ref()).unwrap();
         let number = U64::from_u64(number);
@@ -338,6 +374,7 @@ pub async fn save_state(
         }
     }
 
+    // TODO: spawn
     for (addr, hash) in get_classes(&state) {
         let address = U256::from_hex(addr.as_ref()).unwrap();
         let number = U64::from_u64(number);
@@ -370,6 +407,7 @@ pub fn get_classes(state: &dto::StateUpdate) -> impl Iterator<Item = (&Felt, &Fe
         )
 }
 
+// TODO: avoid function-scoped lock on Storage
 pub async fn purge_block(
     _db: &mut Storage,
     _number: u64,
