@@ -220,12 +220,11 @@ where
         seq.get_state_by_hash(hash.as_ref()).await?
     };
 
-    let classes = get_classes(&state)
-        .map(|(_, hash)| hash.as_ref().to_string())
-        .collect::<HashSet<_>>();
-
     let handler = {
         let ctx = ctx.clone();
+        let classes = get_classes(&state)
+            .map(|(_, hash)| hash.as_ref().to_string())
+            .collect::<HashSet<_>>();
         tokio::spawn(async move {
             for hash in classes {
                 if ctx.lock().await.db.classes.has(&hash).await? {
