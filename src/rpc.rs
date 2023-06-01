@@ -85,10 +85,17 @@ where
         (sync.lo, sync.hi)
     };
 
+    let ratio = lo.zip(hi)
+        .map(|(lo, hi)| (lo as f64, hi as f64))
+        .map(|(lo, hi)| (hi - lo) / hi * 100.0)
+        .map(|r| format!("{r:.2}%"))
+        .unwrap_or("".to_string());
+
     Ok(Html(format!(
-        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sync Status</title></head><body><h1>{}..{}</h1></body></html>"#,
+        r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sync Status</title></head><body><h1>{}..{}</h1><h1>{}</h1></body></html>"#,
         lo.map(|lo| format!("{lo}")).unwrap_or("?".to_string()),
-        hi.map(|hi| format!("{hi}")).unwrap_or("?".to_string())
+        hi.map(|hi| format!("{hi}")).unwrap_or("?".to_string()),
+        ratio,
     )))
 }
 
