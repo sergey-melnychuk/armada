@@ -19,14 +19,14 @@ async fn main() -> anyhow::Result<()> {
     let home = std::env::var("HOME")?;
 
     let token = std::env::var("INFURA_TOKEN")?;
-    let eth_url = &format!("https://mainnet.infura.io/v3/{token}");
+    let eth_url = &format!("https://goerli.infura.io/v3/{token}");
 
-    let seq_url = "https://alpha-mainnet.starknet.io";
+    let seq_url = "https://alpha4.starknet.io";
 
-    // let eth_contract_address = "0xde29d060D45901Fb19ED6C6e959EB22d8626708e";
-    let eth_contract_address = "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4";
+    let eth_contract_address = "0xde29d060D45901Fb19ED6C6e959EB22d8626708e";
+    // let eth_contract_address = "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4";
 
-    let storage_path = &format!("{home}/Temp/armada/mainnet");
+    let storage_path = &format!("{home}/Temp/armada/testnet");
 
     let rpc_bind_addr = "0.0.0.0:9000";
     let eth_poll_delay = 120 * SECOND;
