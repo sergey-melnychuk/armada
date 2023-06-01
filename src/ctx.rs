@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
-use tokio::{runtime::Runtime, sync::Mutex, time::Instant};
+use tokio::{sync::Mutex, time::Instant};
 use yakvdb::typed::DB;
 
 use crate::{
@@ -23,9 +22,6 @@ pub struct Sync {
 pub struct Shared {
     pub sync: Sync,
 }
-
-#[allow(clippy::declare_interior_mutable_const)] // clippy, please let me have this one
-static RUNTIME: Lazy<Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
 
 #[derive(Clone)]
 pub struct Context<ETH, SEQ> {
@@ -234,30 +230,42 @@ where
             item
         };
 
-        let result = RUNTIME
-            .block_on(async {
+        let result = self
+            .db
+            .states_index
+            .read()
+            .await
+            .lookup(&item)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+            })?;
+
+        let result = if let Some(result) = result {
+            Some(result)
+        } else {
+            if let Some(below) = self
+                .db
+                .states_index
+                .read()
+                .await
+                .below(&item)
+                .map_err(|e| {
+                    iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+                })?
+            {
                 self.db
                     .states_index
                     .read()
                     .await
-                    .lookup(&item)
+                    .lookup(&below)
                     .map_err(|e| {
                         iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
-                    })
-            })?
-            .or_else(|| {
-                RUNTIME
-                    .block_on(async { self.db.states_index.read().await.below(&item) })
-                    .ok()
-                    .flatten()
-                    .and_then(|item| {
-                        RUNTIME
-                            .block_on(async { self.db.states_index.read().await.lookup(&item) })
-                            .ok()
-                            .flatten()
-                    })
-            })
-            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                    })?
+            } else {
+                None
+            }
+        }
+        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
         let felt = Felt::try_new(&result.into_str())?;
         Ok(felt)
@@ -278,8 +286,12 @@ where
             )
         })?;
 
-        let block_and_number: BlockAndIndex = RUNTIME
-            .block_on(async { self.db.txs_index.read().await.lookup(&key) })
+        let block_and_number = self
+            .db
+            .txs_index
+            .read()
+            .await
+            .lookup(&key)
             .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
@@ -343,8 +355,12 @@ where
             )
         })?;
 
-        let block_and_index: BlockAndIndex = RUNTIME
-            .block_on(async { self.db.txs_index.read().await.lookup(&key) })
+        let block_and_index: BlockAndIndex = self
+            .db
+            .txs_index
+            .read()
+            .await
+            .lookup(&key)
             .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
@@ -402,8 +418,12 @@ where
         let address = U256::from_hex(contract_address.0.as_ref()).unwrap();
         let number = U64::from_u64(block_number);
         let key = AddressAndNumber::from(address, number);
-        let class_hash: U256 = RUNTIME
-            .block_on(async { self.db.classes_index.read().await.lookup(&key) })
+        let class_hash: U256 = self
+            .db
+            .classes_index
+            .read()
+            .await
+            .lookup(&key)
             .map_err(|_| crate::api::gen::error::CLASS_HASH_NOT_FOUND)?
             .ok_or(crate::api::gen::error::CLASS_HASH_NOT_FOUND)?;
 
@@ -463,19 +483,17 @@ where
     }
 
     async fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
-        let num = RUNTIME
-            .block_on(async {
-                let idx = self.db.blocks_index.read().await;
-                let max = idx.max()?;
-                Ok(max)
-            })
-            .map_err(|e: anyhow::Error| {
-                iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
-            })?
-            .ok_or(iamgroot::jsonrpc::Error::new(
-                -1,
-                "Failed to read block index".to_string(),
-            ))?;
+        let num = {
+            let idx = self.db.blocks_index.read().await;
+            idx.max()
+        }
+        .map_err(|e: anyhow::Error| {
+            iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+        })?
+        .ok_or(iamgroot::jsonrpc::Error::new(
+            -1,
+            "Failed to read block index".to_string(),
+        ))?;
 
         BlockNumber::try_new(num.into_u64() as i64)
     }
@@ -483,24 +501,24 @@ where
     async fn blockHashAndNumber(
         &self,
     ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error> {
-        let (num, hash) = RUNTIME
-            .block_on(async {
-                let idx = self.db.blocks_index.read().await;
-                let max = idx.max()?;
-                let max_hash = if let Some(max) = max.as_ref() {
+        let (num, hash) = {
+            let idx = self.db.blocks_index.read().await;
+            idx.max().and_then(|max| {
+                let hash = if let Some(max) = max.as_ref() {
                     idx.lookup(max)?
                 } else {
                     None
                 };
-                Ok(max.zip(max_hash))
+                Ok(max.zip(hash))
             })
-            .map_err(|e: anyhow::Error| {
-                iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
-            })?
-            .ok_or(iamgroot::jsonrpc::Error::new(
-                -1,
-                "Failed to read block index".to_string(),
-            ))?;
+        }
+        .map_err(|e: anyhow::Error| {
+            iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+        })?
+        .ok_or(iamgroot::jsonrpc::Error::new(
+            -1,
+            "Failed to read block index".to_string(),
+        ))?;
 
         Ok(BlockHashAndNumberResult {
             block_hash: Some(BlockHash(Felt::try_new(&hash.into_str())?)),
@@ -522,26 +540,26 @@ where
     }
 
     async fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
-        let (lo, lo_hash, hi, hi_hash) = RUNTIME
-            .block_on(async {
-                let idx = self.db.blocks_index.read().await;
-                let min = idx.min()?;
-                let max = idx.max()?;
-                let min_hash = if let Some(min) = min.as_ref() {
-                    idx.lookup(min)?
-                } else {
-                    None
-                };
-                let max_hash = if let Some(max) = max.as_ref() {
-                    idx.lookup(max)?
-                } else {
-                    None
-                };
-                Ok((min, min_hash, max, max_hash))
-            })
-            .map_err(|e: anyhow::Error| {
-                iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
-            })?;
+        let (lo, lo_hash, hi, hi_hash) = async {
+            let idx = self.db.blocks_index.read().await;
+            let min = idx.min()?;
+            let max = idx.max()?;
+            let min_hash = if let Some(min) = min.as_ref() {
+                idx.lookup(min)?
+            } else {
+                None
+            };
+            let max_hash = if let Some(max) = max.as_ref() {
+                idx.lookup(max)?
+            } else {
+                None
+            };
+            Ok((min, min_hash, max, max_hash))
+        }
+        .await
+        .map_err(|e: anyhow::Error| {
+            iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+        })?;
         let (lo, lo_hash, hi, hi_hash) = match (lo, lo_hash, hi, hi_hash) {
             (Some(lo), Some(lo_hash), Some(hi), Some(hi_hash)) => (lo, lo_hash, hi, hi_hash),
             _ => return Ok(SyncingSyncing::Boolean(false)),
@@ -616,7 +634,7 @@ where
             for k in &keys {
                 let key = AddressWithKeyAndNumber::from(addr.clone(), k.clone(), number.clone());
 
-                let found = RUNTIME.block_on(async {
+                let found = {
                     let hash = self
                         .db
                         .blocks_index
@@ -650,8 +668,8 @@ where
                         })?
                         .map(|x| x.into_u64() as usize);
 
-                    Ok::<Option<(BlockWithTxs, usize)>, iamgroot::jsonrpc::Error>(block.zip(tx))
-                })?;
+                    block.zip(tx)
+                };
 
                 found
                     .map(|(block, tx)| {
@@ -725,8 +743,11 @@ where
         let item = AddressAndNumber::from(address, number);
 
         let item = if block_number == u64::MAX {
-            RUNTIME
-                .block_on(async { self.db.nonces_index.read().await.below(&item) })
+            self.db
+                .nonces_index
+                .read()
+                .await
+                .below(&item)
                 .ok()
                 .flatten()
                 .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?
@@ -734,33 +755,42 @@ where
             item
         };
 
-        let result = RUNTIME
-            .block_on(async {
+        let result = self
+            .db
+            .nonces_index
+            .read()
+            .await
+            .lookup(&item)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+            })?;
+
+        let result = if let Some(result) = result {
+            Some(result)
+        } else {
+            if let Some(below) = self
+                .db
+                .nonces_index
+                .read()
+                .await
+                .below(&item)
+                .map_err(|e| {
+                    iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+                })?
+            {
                 self.db
                     .nonces_index
                     .read()
                     .await
-                    .lookup(&item)
+                    .lookup(&below)
                     .map_err(|e| {
-                        iamgroot::jsonrpc::Error::new(
-                            -65000,
-                            format!("Failed to read nonce: '{e}'"),
-                        )
-                    })
-            })?
-            .or_else(|| {
-                RUNTIME
-                    .block_on(async { self.db.nonces_index.read().await.below(&item) })
-                    .ok()
-                    .flatten()
-                    .and_then(|item| {
-                        RUNTIME
-                            .block_on(async { self.db.nonces_index.read().await.lookup(&item) })
-                            .ok()
-                            .flatten()
-                    })
-            })
-            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                        iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+                    })?
+            } else {
+                None
+            }
+        }
+        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
         let felt = Felt::try_new(&result.into_str())?;
         Ok(felt)
