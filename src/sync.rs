@@ -220,7 +220,7 @@ where
         seq.get_state_by_hash(hash.as_ref()).await?
     };
 
-    let handler = {
+    let handle = {
         let ctx = ctx.clone();
         let classes = get_classes(&state)
             .map(|(_, hash)| hash.as_ref().to_string())
@@ -243,7 +243,7 @@ where
         save_state(db, hash.clone(), block_number, state).await?
     };
 
-    handler.await??;
+    handle.await??;
 
     tracing::debug!(
         number = block_number,
