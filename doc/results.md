@@ -1,4 +1,4 @@
-## Armada experiment: Results
+## Results
 
 During just 2 weeks multiple design suggestions were implemented and validated:
 - storage (filesystem-like)
@@ -9,24 +9,35 @@ During just 2 weeks multiple design suggestions were implemented and validated:
 
 ### Mainnet full sync summary
 
-Total time: ~36h
+Total time: 27h 25m
 
 ```
-24G   ~/armada/mainnet/
+$ du -sh ~/Temp/armada/mainnet
+25G	~/Temp/armada/mainnet
+```
 
-6.9G  ~/armada/mainnet/block
-15G   ~/armada/mainnet/state
-298M  ~/armada/mainnet/class
-
-[4.0K]  ~/armada/mainnet/
-├── [7.8M]  block
-│   ├── [2.3G]  event.yak
-│   └── [8.8M]  index.yak
-├── [468K]  class
-│   └── [206M]  index.yak
-├── [7.8M]  state
-│   ├── [ 11G]  index.yak
-│   └── [1.4G]  nonce.yak
+```
+$ tree -h ~/Temp/armada/mainnet/ | grep -v json
+[4.0K]  ~/Temp/armada/mainnet/
+├── [8.0M]  block
+│   ├── [2.4G]  event.yak
+│   └── [9.1M]  index.yak
+├── [444K]  class
+│   └── [209M]  index.yak
+├── [8.0M]  state
+│   ├── [ 12G]  index.yak
+│   └── [1.5G]  nonce.yak
 └── [4.0K]  tx
     └── [1.9G]  index.yak
+
+4 directories, 140880 files
+```
+
+```
+$ ls -l ~/Temp/armada/mainnet/state | grep json | wc -l
+68553
+$ ls -l ~/Temp/armada/mainnet/block | grep json | wc -l
+68553
+$ ls -l ~/Temp/armada/mainnet/class | grep json | wc -l
+3769
 ```
