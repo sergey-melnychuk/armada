@@ -62,46 +62,13 @@ async fn main() -> anyhow::Result<()> {
     }
     tracing::info!(synced=?(lo, hi), "Sync running");
 
-    let done = is_done::is_done(ctx.db.blocks_index.clone());
-
     let addr: SocketAddr = rpc_bind_addr.parse()?;
     let (addr, server) = armada::rpc::serve(&addr, ctx).await;
     tracing::info!(at=?addr, "RPC server listening");
-
-    done.await;
-    syncer.stop();
-    server.stop();
 
     syncer.done().await;
     server.done().await;
 
     tracing::warn!("Armada is out :micdrop:");
     Ok(())
-}
-
-pub mod is_done {
-    use std::{sync::Arc, time::Duration};
-
-    use armada::util::{U256, U64};
-    use tokio::sync::RwLock;
-    use yakvdb::typed::{Store, DB};
-
-    pub async fn is_done(index: Arc<RwLock<Store<U64, U256>>>) {
-        let delay = 5 * Duration::from_secs(60);
-        tokio::spawn(async move {
-            loop {
-                if let Some(min) = index.read().await.min()? {
-                    if min.into_u64() == 0 {
-                        tracing::info!("Sync is complete");
-                        break;
-                    }
-                }
-                tokio::time::sleep(delay).await;
-            }
-            Ok::<_, anyhow::Error>(())
-        })
-        .await
-        .map(|_| ())
-        .ok();
-    }
 }

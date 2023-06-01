@@ -396,6 +396,35 @@ pub fn map_class(_class: dto::Class) -> GetClassResult {
     })
 }
 
+pub mod is_done {
+    use std::{sync::Arc, time::Duration};
+
+    use tokio::sync::RwLock;
+    use yakvdb::typed::{Store, DB};
+
+    use super::{U256, U64};
+
+    #[allow(dead_code)]
+    pub async fn is_done(index: Arc<RwLock<Store<U64, U256>>>) {
+        let delay = 5 * Duration::from_secs(60);
+        tokio::spawn(async move {
+            loop {
+                if let Some(min) = index.read().await.min()? {
+                    if min.into_u64() == 0 {
+                        tracing::info!("Sync is complete");
+                        break;
+                    }
+                }
+                tokio::time::sleep(delay).await;
+            }
+            Ok::<_, anyhow::Error>(())
+        })
+        .await
+        .map(|_| ())
+        .ok();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
