@@ -441,7 +441,7 @@ mod tests {
     #[test]
     fn test_gzip_roundtrip() -> anyhow::Result<()> {
         let message = "The quick brown fox jumps over the lazy dog";
-        let bytes = gzip::gzip(message.as_ref())?;
+        let bytes = gzip::gzip(message)?;
         let restore = gzip::ungzip(&bytes)?;
         assert_eq!(restore, message);
         Ok(())

@@ -242,28 +242,26 @@ where
 
         let result = if let Some(result) = result {
             Some(result)
-        } else {
-            if let Some(below) = self
-                .db
+        } else if let Some(below) = self
+            .db
+            .states_index
+            .read()
+            .await
+            .below(&item)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+            })?
+        {
+            self.db
                 .states_index
                 .read()
                 .await
-                .below(&item)
+                .lookup(&below)
                 .map_err(|e| {
                     iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
                 })?
-            {
-                self.db
-                    .states_index
-                    .read()
-                    .await
-                    .lookup(&below)
-                    .map_err(|e| {
-                        iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
-                    })?
-            } else {
-                None
-            }
+        } else {
+            None
         }
         .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
@@ -767,28 +765,26 @@ where
 
         let result = if let Some(result) = result {
             Some(result)
-        } else {
-            if let Some(below) = self
-                .db
+        } else if let Some(below) = self
+            .db
+            .nonces_index
+            .read()
+            .await
+            .below(&item)
+            .map_err(|e| {
+                iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+            })?
+        {
+            self.db
                 .nonces_index
                 .read()
                 .await
-                .below(&item)
+                .lookup(&below)
                 .map_err(|e| {
                     iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
                 })?
-            {
-                self.db
-                    .nonces_index
-                    .read()
-                    .await
-                    .lookup(&below)
-                    .map_err(|e| {
-                        iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
-                    })?
-            } else {
-                None
-            }
+        } else {
+            None
         }
         .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
