@@ -14,8 +14,8 @@ use crate::{
 
 #[derive(Clone, Debug, Default)]
 pub struct Sync {
-    pub lo: u64,
-    pub hi: u64,
+    pub lo: Option<u64>,
+    pub hi: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default)]

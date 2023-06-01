@@ -87,7 +87,8 @@ where
 
     Ok(Html(format!(
         r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sync Status</title></head><body><h1>{}..{}</h1></body></html>"#,
-        lo, hi
+        lo.map(|lo| format!("{lo}")).unwrap_or("?".to_string()),
+        hi.map(|hi| format!("{hi}")).unwrap_or("?".to_string())
     )))
 }
 

@@ -46,21 +46,30 @@ async fn main() -> anyhow::Result<()> {
     let tx = source.tx();
     let syncer = armada::sync::sync(source, sync::handler).await;
 
-    let (lo, hi) = {
+    let range = {
         let idx = ctx.db.blocks_index.read().await;
-        let min = idx.min()?.unwrap_or_default().into_u64();
-        let max = idx.max()?.unwrap_or_default().into_u64();
-        (min, max)
+        let min = idx.min()?.map(|val| val.into_u64());
+        let max = idx.max()?.map(|val| val.into_u64());
+        min.zip(max)
     };
-    if lo > 0 {
-        use armada::db::Repo;
-        let key = U64::from_u64(lo);
-        let lo_block_hash = ctx.db.blocks_index.read().await.lookup(&key)?.unwrap();
-        let lo_block = ctx.db.blocks.get(&lo_block_hash.into_str()).await?.unwrap();
-        let lo_parent_hash = lo_block.block_header.parent_hash.0;
-        tx.send(Event::PullBlock(lo_parent_hash)).await.ok();
+    if let Some((lo, hi)) = range {
+        {
+            let sync = &mut ctx.shared.lock().await.sync;
+            sync.lo = Some(lo);
+            sync.hi = Some(hi);
+        }
+        if lo > 0 {
+            use armada::db::Repo;
+            let key = U64::from_u64(lo);
+            let lo_block_hash = ctx.db.blocks_index.read().await.lookup(&key)?.unwrap();
+            let lo_block = ctx.db.blocks.get(&lo_block_hash.into_str()).await?.unwrap();
+            let lo_parent_hash = lo_block.block_header.parent_hash.0;
+            tx.send(Event::PullBlock(lo_parent_hash)).await.ok();
+        }
+        tracing::info!(synced=?(lo, hi), "Sync running");
+    } else {
+        tracing::info!("Sync running");
     }
-    tracing::info!(synced=?(lo, hi), "Sync running");
 
     let addr: SocketAddr = rpc_bind_addr.parse()?;
     let (addr, server) = armada::rpc::serve(&addr, ctx).await;

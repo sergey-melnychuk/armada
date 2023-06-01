@@ -443,12 +443,8 @@ where
             {
                 let ctx = ctx.lock().await;
                 let sync = &mut ctx.shared.lock().await.sync;
-                sync.lo = if sync.lo == 0 {
-                    number
-                } else {
-                    number.min(sync.lo)
-                };
-                sync.hi = number.max(sync.hi);
+                sync.lo = sync.lo.map(|lo| number.min(lo)).or(Some(number));
+                sync.hi = sync.hi.map(|hi| number.max(hi)).or(Some(number));
             }
         }
         Event::PurgeBlock(number, hash) => {
@@ -501,12 +497,11 @@ where
     let block_number = *latest.block_header.block_number.as_ref() as u64;
     let block_hash = latest.block_header.block_hash.0.clone();
 
-    tracing::info!(number = block_number, hash = block_hash.as_ref(), "L2 head");
+    tracing::info!(number = block_number, hash = block_hash.as_ref(), "Latest block");
 
     let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref()).await?;
     if !block_exists {
-        let parent_hash = latest.block_header.parent_hash.0.clone();
-        Ok(Some(Event::PullBlock(parent_hash)))
+        Ok(Some(Event::PullBlock(block_hash)))
     } else {
         Ok(Some(Event::Head(block_number, block_hash)))
     }
