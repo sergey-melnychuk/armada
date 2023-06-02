@@ -41,8 +41,8 @@ async fn main() -> anyhow::Result<()> {
     let ctx = Context::new(eth, seq, shared, db, config);
     let source = Source::new(ctx.clone());
     source.add("uptime", sync::poll_uptime, SECOND).await;
-    source.add("seq", sync::poll_seq, seq_poll_delay).await;
-    source.add("eth", sync::poll_eth, eth_poll_delay).await;
+    source.add("gateway", sync::poll_seq, seq_poll_delay).await;
+    source.add("ethereum", sync::poll_eth, eth_poll_delay).await;
     let tx = source.tx();
     let syncer = armada::sync::sync(source, sync::handler).await;
 
@@ -77,7 +77,5 @@ async fn main() -> anyhow::Result<()> {
 
     syncer.done().await;
     server.done().await;
-
-    tracing::warn!("Armada is out :micdrop:");
     Ok(())
 }
