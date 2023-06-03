@@ -290,8 +290,8 @@ where
             .read()
             .await
             .lookup(&key)
-            .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
-            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+            .map_err(|_| crate::api::gen::error::TXN_HASH_NOT_FOUND)?
+            .ok_or(crate::api::gen::error::TXN_HASH_NOT_FOUND)?;
 
         let hash = Felt::try_new(&block_and_number.block().into_str())?;
         self.getTransactionByBlockIdAndIndex(
@@ -331,10 +331,13 @@ where
             })?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
+        if index >= block.block_body_with_txs.transactions.len() {
+            return Err(crate::api::gen::error::TXN_HASH_NOT_FOUND.into());
+        }
         if let Some(txn) = block.block_body_with_txs.transactions.get(index) {
             Ok(txn.clone())
         } else {
-            Err(crate::api::gen::error::BLOCK_NOT_FOUND.into())
+            Err(crate::api::gen::error::TXN_HASH_NOT_FOUND.into())
         }
     }
 
