@@ -317,4 +317,9 @@ curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet
 
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_getEvents","params":{"filter":{"address":"0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8","from_block":{"block_number":24958},"to_block":{"block_number":24998},"keys":[["0x134692b230b9e1ffa39098904722134159652b09c5bc41d88d6698779d228ff"]],"chunk_size":100}},"id":1}' http://127.0.0.1:9000/rpc/v0.3
 
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_syncing","params":[],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_blockNumber","params":[],"id":1}' http://127.0.0.1:9000/rpc/v0.3
+
+curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_blockHashAndNumber","params":[],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 ```
