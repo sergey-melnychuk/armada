@@ -760,6 +760,7 @@ pub mod gen {
             Lazy::new(|| Regex::new("^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$").unwrap());
 
         // Workaround to support invalid Felts returned by the gateway.
+        // TODO: clean up the impl, add some tests
         fn fix(value: &str) -> String {
             let value = if value.starts_with('0') && !value.starts_with("0x") {
                 value.chars().skip_while(|c| c == &'0').collect::<String>()
@@ -780,6 +781,11 @@ pub mod gen {
                             value.clone()
                         } else {
                             let hex = hex.chars().skip_while(|c| c == &'0').collect::<String>();
+                            let hex = if hex.is_empty() {
+                                "0".to_string()
+                            } else {
+                                hex
+                            };
                             format!("0x{hex}")
                         }
                     })
