@@ -323,3 +323,21 @@ curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet
 
 curl -H 'Content-type: application/json' -d '{"jsonrpc":"2.0","method":"starknet_blockHashAndNumber","params":[],"id":1}' http://127.0.0.1:9000/rpc/v0.3
 ```
+
+#### `ab`
+
+```
+cat << EOF > post.json
+{"jsonrpc":"2.0","method":"starknet_getBlockWithTxHashes","params":[{"block_number":805543}],"id":1}
+EOF
+
+cat << EOF > post.json
+{"jsonrpc":"2.0","method":"starknet_getTransactionByHash","params":["0x78ddcf3ee7b8c9a487cd1efd03c77242fea40d9121c285b73ebccfb86e6b805"],"id":1}
+EOF
+
+cat << EOF > post.json
+{"jsonrpc":"2.0","method":"starknet_getTransactionByBlockIdAndIndex","params":[{"block_number":805543},0],"id":1}
+EOF
+
+ab -p post.json -T 'application/json' -c 100 -n 100000 http://127.0.0.1:9000/rpc/v0.3
+```
