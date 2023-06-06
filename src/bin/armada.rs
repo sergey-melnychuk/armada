@@ -33,6 +33,8 @@ async fn main() -> anyhow::Result<()> {
     let seq_poll_delay = 30 * SECOND;
     let config = Config::new(SECOND, eth_contract_address.to_string());
 
+    tracing::info!("Armada is starting...");
+
     let eth = EthClient::new(eth_url);
     let seq = SeqClient::new(seq_url);
     let db = Storage::new(storage_path).await;
