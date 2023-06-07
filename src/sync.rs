@@ -209,7 +209,7 @@ where
 
     if let Some(event) = {
         let db = &mut ctx.lock().await.db;
-        save_block(db, hash.clone(), block).await?
+        save_block(db, block_hash.clone(), block).await?
     } {
         events.push(event);
     }
