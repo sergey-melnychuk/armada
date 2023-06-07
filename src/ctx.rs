@@ -126,6 +126,16 @@ where
     ) -> std::result::Result<GetBlockWithTxsResult, iamgroot::jsonrpc::Error> {
         let hash = match block_id {
             BlockId::BlockHash { block_hash } => block_hash,
+            BlockId::BlockNumber { block_number } => {
+                let key = U64::from_u64(*block_number.as_ref() as u64);
+                let idx = self.db.blocks_index.read().await;
+                let hash = idx
+                    .lookup(&key)
+                    .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
+                    .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                let felt = Felt::try_new(&hash.into_str())?;
+                BlockHash(felt)
+            }
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
             }
@@ -155,6 +165,16 @@ where
     ) -> std::result::Result<GetStateUpdateResult, iamgroot::jsonrpc::Error> {
         let hash = match block_id {
             BlockId::BlockHash { block_hash } => block_hash,
+            BlockId::BlockNumber { block_number } => {
+                let key = U64::from_u64(*block_number.as_ref() as u64);
+                let idx = self.db.blocks_index.read().await;
+                let hash = idx
+                    .lookup(&key)
+                    .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
+                    .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                let felt = Felt::try_new(&hash.into_str())?;
+                BlockHash(felt)
+            }
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
             }
@@ -312,6 +332,16 @@ where
 
         let hash = match block_id {
             BlockId::BlockHash { block_hash } => block_hash,
+            BlockId::BlockNumber { block_number } => {
+                let key = U64::from_u64(*block_number.as_ref() as u64);
+                let idx = self.db.blocks_index.read().await;
+                let hash = idx
+                    .lookup(&key)
+                    .map_err(|_| crate::api::gen::error::BLOCK_NOT_FOUND)?
+                    .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+                let felt = Felt::try_new(&hash.into_str())?;
+                BlockHash(felt)
+            }
             _ => {
                 return Err(crate::api::gen::error::BLOCK_NOT_FOUND.into());
             }
