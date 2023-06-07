@@ -85,7 +85,8 @@ where
         (sync.lo, sync.hi)
     };
 
-    let ratio = lo.zip(hi)
+    let ratio = lo
+        .zip(hi)
         .map(|(lo, hi)| (lo as f64, hi as f64))
         .map(|(lo, hi)| (hi - lo) / hi * 100.0)
         .map(|r| format!("{r:.2}%"))

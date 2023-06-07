@@ -97,7 +97,7 @@ where
     F: Fn(Arc<Mutex<Context<ETH, SEQ>>>, Event) -> R + Copy + Send + Sync + 'static,
     R: Future<Output = anyhow::Result<Vec<Event>>> + Send + 'static,
 {
-    let delay = source.ctx().lock().await.config.poll_delay;
+    let delay = source.ctx().lock().await.config.src_poll_delay;
 
     let (tx, mut rx) = channel::<()>();
     let jh = tokio::spawn(async move {
@@ -497,7 +497,11 @@ where
     let block_number = *latest.block_header.block_number.as_ref() as u64;
     let block_hash = latest.block_header.block_hash.0.clone();
 
-    tracing::info!(number = block_number, hash = block_hash.as_ref(), "Latest block");
+    tracing::info!(
+        number = block_number,
+        hash = block_hash.as_ref(),
+        "Latest block"
+    );
 
     let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref()).await?;
     if !block_exists {

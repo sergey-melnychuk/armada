@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, time::Duration};
 
 use armada::{
-    cfg::Config,
+    cfg::{Config, Profile},
     ctx::{Context, Shared},
     db::Storage,
     eth::EthClient,
@@ -13,30 +13,57 @@ use yakvdb::typed::DB;
 
 const SECOND: Duration = Duration::from_secs(1);
 
+#[allow(unused_variables)] // TODO: remove
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
+
     let home = std::env::var("HOME")?;
-
     let token = std::env::var("INFURA_TOKEN")?;
-    let eth_url = &format!("https://goerli.infura.io/v3/{token}");
 
-    let seq_url = "https://alpha4.starknet.io";
+    let mainnet = Profile {
+        network: "mainnet".to_string(),
+        eth_url: format!("https://mainnet.infura.io/v3/{token}"),
+        seq_url: "https://alpha-mainnet.starknet.io".to_string(),
+        eth_contract_address: "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4".to_string(),
+    };
 
-    let eth_contract_address = "0xde29d060D45901Fb19ED6C6e959EB22d8626708e";
-    // let eth_contract_address = "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4";
+    let testnet = Profile {
+        network: "testnet".to_string(),
+        eth_url: format!("https://goerli.infura.io/v3/{token}"),
+        seq_url: "https://alpha4.starknet.io".to_string(),
+        eth_contract_address: "0xde29d060D45901Fb19ED6C6e959EB22d8626708e".to_string(),
+    };
 
-    let storage_path = &format!("{home}/Temp/armada/testnet");
+    let profile = match std::env::args().into_iter().nth(1).as_ref() {
+        Some(name) if name == "mainnet" => mainnet,
+        Some(name) if name == "testnet" => testnet,
+        Some(name) => {
+            anyhow::bail!("Unsupported network: {}. Supported networks: mainnet, testnet.", name);
+        }
+        None => {
+            anyhow::bail!("Network is not defined. Supported networks: mainnet, testnet.");
+        }
+    };
+
+    tracing::info!(network=profile.network, "Armada is starting...");
+
+    let storage_path = &format!("{home}/Temp/armada/{}", profile.network);
 
     let rpc_bind_addr = "0.0.0.0:9000";
     let eth_poll_delay = 120 * SECOND;
     let seq_poll_delay = 30 * SECOND;
-    let config = Config::new(SECOND, eth_contract_address.to_string());
 
-    tracing::info!("Armada is starting...");
+    let config = Config::new(
+        rpc_bind_addr.parse()?,
+        SECOND,
+        seq_poll_delay,
+        eth_poll_delay,
+        profile.eth_contract_address.to_string(),
+    );
 
-    let eth = EthClient::new(eth_url);
-    let seq = SeqClient::new(seq_url);
+    let eth = EthClient::new(&profile.eth_url);
+    let seq = SeqClient::new(&profile.seq_url);
     let db = Storage::new(storage_path).await;
     let shared = Shared::default();
 

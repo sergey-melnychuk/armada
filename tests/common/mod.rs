@@ -35,7 +35,13 @@ impl Test {
         let shared = Shared::default();
         let db = Storage::new(dir.path()).await;
 
-        let config = Config::new(Duration::from_secs(1), "0x0".to_string());
+        let config = Config::new(
+            ([127, 0, 0, 1], 0).into(),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            "0x0".to_string(),
+        );
 
         let ctx = Context::new(eth, seq, shared, db, config);
 
