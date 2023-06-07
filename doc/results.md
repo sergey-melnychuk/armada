@@ -7,18 +7,53 @@ During just 2 weeks multiple design suggestions were implemented and validated:
 - single shared application context
 - testkit (based on shared context)
 
+### Testnet full sync summary
+
+Total time: ~7 days (throttled to 100 blocks per minute)
+
+```
+$ du -sh ~/armada/testnet
+56G	~/armada/testnet
+```
+
+```
+$ tree -h ~/armada/testnet/ | grep -v json
+[4.0K]  ~/armada/testnet/
+├── [ 95M]  block
+│   ├── [4.6G]  event.yak
+│   └── [108M]  index.yak
+├── [2.3M]  class
+│   └── [239M]  index.yak
+├── [ 96M]  state
+│   ├── [ 32G]  index.yak
+│   └── [876M]  nonce.yak
+└── [4.0K]  tx
+    └── [2.8G]  index.yak
+
+4 directories, 1651840 files
+```
+
+```
+$ ls -l ~/armada/testnet/state | grep json | wc -l
+815954
+$ ls -l ~/armada/testnet/block | grep json | wc -l
+815954
+$ ls -l ~/armada/testnet/class | grep json | wc -l
+19927
+```
+
 ### Mainnet full sync summary
 
 Total time: 27h 25m
 
 ```
-$ du -sh ~/Temp/armada/mainnet
-25G	~/Temp/armada/mainnet
+$ du -sh ~/armada/mainnet
+25G	~/armada/mainnet
 ```
 
 ```
-$ tree -h ~/Temp/armada/mainnet/ | grep -v json
-[4.0K]  ~/Temp/armada/mainnet/
+$ tree -h ~/armada/mainnet/ | grep -v json
+[4.0K]  ~/armada/mainnet/
 ├── [8.0M]  block
 │   ├── [2.4G]  event.yak
 │   └── [9.1M]  index.yak
@@ -34,10 +69,10 @@ $ tree -h ~/Temp/armada/mainnet/ | grep -v json
 ```
 
 ```
-$ ls -l ~/Temp/armada/mainnet/state | grep json | wc -l
+$ ls -l ~/armada/mainnet/state | grep json | wc -l
 68553
-$ ls -l ~/Temp/armada/mainnet/block | grep json | wc -l
+$ ls -l ~/armada/mainnet/block | grep json | wc -l
 68553
-$ ls -l ~/Temp/armada/mainnet/class | grep json | wc -l
+$ ls -l ~/armada/mainnet/class | grep json | wc -l
 3769
 ```
