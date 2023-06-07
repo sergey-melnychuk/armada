@@ -1,9 +1,6 @@
 use std::cell::RefCell;
 
-use tokio::{
-    sync::oneshot::{error::TryRecvError, Receiver, Sender},
-    task::JoinHandle,
-};
+use tokio::{sync::oneshot, task::JoinHandle};
 
 use crate::{
     api::gen::{
@@ -16,8 +13,39 @@ use crate::{
         SierraEntryPoint, StateDiff, StateUpdate, StorageEntriesItem, Txn, TxnHash, TxnReceipt,
         TxnStatus,
     },
+    ctx::Context,
     seq::dto::{self, DeclaredClass, DeployedContract, ReplacedClass},
 };
+
+pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result<Vec<u64>> {
+    use yakvdb::typed::DB;
+    let mut top = ctx.shared.lock().await.sync.hi.unwrap_or_default();
+    tokio::spawn(async move {
+        let mut total = 0;
+        let mut found = false;
+        let mut ret = Vec::new();
+        tracing::info!("Block gaps detection running...");
+        while top > 0 {
+            top -= 1;
+            let key = U64::from_u64(top);
+
+            let hash = ctx.db.blocks_index.read().await.lookup(&key)?;
+            if hash.is_some() {
+                found = true;
+            }
+            if hash.is_none() {
+                if found {
+                    ret.push(top);
+                }
+                total += 1;
+                found = false;
+            }
+        }
+        tracing::info!(missing = total, "Block gaps detection done");
+        Ok(ret)
+    })
+    .await?
+}
 
 pub mod http {
     pub const HTTP_OK: u16 = 200;
@@ -98,18 +126,18 @@ impl<'a> From<&'a [u8]> for U64 {
 
 pub struct Waiter {
     jh: RefCell<Option<JoinHandle<()>>>,
-    tx: RefCell<Option<Sender<()>>>,
+    tx: RefCell<Option<oneshot::Sender<()>>>,
 }
 
 impl Waiter {
-    pub fn new(jh: JoinHandle<()>, tx: Sender<()>) -> Self {
+    pub fn new(jh: JoinHandle<()>, tx: oneshot::Sender<()>) -> Self {
         Self {
             jh: RefCell::new(Some(jh)),
             tx: RefCell::new(Some(tx)),
         }
     }
 
-    pub fn unfold(&mut self) -> Option<(JoinHandle<()>, Sender<()>)> {
+    pub fn unfold(&mut self) -> Option<(JoinHandle<()>, oneshot::Sender<()>)> {
         if self.jh.borrow().is_none() || self.tx.borrow().is_none() {
             return None;
         }
@@ -139,10 +167,10 @@ impl Waiter {
     }
 }
 
-pub fn is_open(rx: &mut Receiver<()>) -> bool {
+pub fn is_open(rx: &mut oneshot::Receiver<()>) -> bool {
     match rx.try_recv() {
-        Ok(_) | Err(TryRecvError::Closed) => false,
-        Err(TryRecvError::Empty) => true,
+        Ok(_) | Err(oneshot::error::TryRecvError::Closed) => false,
+        Err(oneshot::error::TryRecvError::Empty) => true,
     }
 }
 

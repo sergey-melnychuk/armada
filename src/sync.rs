@@ -135,22 +135,26 @@ where
 pub enum Event {
     Ethereum(eth::State),
     Head(u64, Felt),
-    PullBlock(Felt),
+    PullBlock(u64, Felt),
     PurgeBlock(u64, Felt),
     Uptime { seconds: u64 },
 }
 
 pub async fn fetch_block<SEQ, ETH>(
     ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+    number: u64,
     hash: &Felt,
 ) -> anyhow::Result<BlockWithTxs>
 where
     SEQ: SeqApi,
     ETH: EthApi,
 {
-    let block = {
+    let block = if hash.as_ref() != "0x0" {
         let seq = &ctx.lock().await.seq;
         seq.get_block_by_hash(hash.as_ref()).await?
+    } else {
+        let seq = &ctx.lock().await.seq;
+        seq.get_block_by_number(number).await?
     };
     let block_number = *block.block_header.block_number.as_ref() as u64;
     let block_hash = block.block_header.block_hash.0.clone();
@@ -189,16 +193,17 @@ where
 
 pub async fn pull_block<SEQ, ETH>(
     ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+    number: u64,
     hash: Felt,
     events: &mut Vec<Event>,
-) -> anyhow::Result<u64>
+) -> anyhow::Result<(u64, Felt)>
 where
     SEQ: SeqApi,
     ETH: EthApi,
 {
     tracing::debug!(hash = hash.as_ref(), "Pulling block");
 
-    let block = fetch_block(ctx.clone(), &hash).await?;
+    let block = fetch_block(ctx.clone(), number, &hash).await?;
     let block_number = *block.block_header.block_number.as_ref() as u64;
     let block_hash = block.block_header.block_hash.0.clone();
 
@@ -217,7 +222,7 @@ where
 
     let state = {
         let seq = &ctx.lock().await.seq;
-        seq.get_state_by_hash(hash.as_ref()).await?
+        seq.get_state_by_hash(block_hash.as_ref()).await?
     };
 
     let handle = {
@@ -251,7 +256,21 @@ where
         "State saved"
     );
 
-    Ok(block_number)
+    {
+        let key = U64::from_u64(block_number);
+        let val = U256::from_hex(block_hash.as_ref())?;
+        let db = &mut ctx.lock().await.db;
+        db.blocks_index.write().await.insert(&key, val)?;
+    }
+
+    {
+        let ctx = ctx.lock().await;
+        let sync = &mut ctx.shared.lock().await.sync;
+        sync.lo = sync.lo.map(|lo| number.min(lo)).or(Some(number));
+        sync.hi = sync.hi.map(|hi| number.max(hi)).or(Some(number));
+    }
+
+    Ok((block_number, block_hash))
 }
 
 // TODO: avoid function-scoped lock on Storage
@@ -262,10 +281,6 @@ pub async fn save_block(
 ) -> anyhow::Result<Option<Event>> {
     let number = *block.block_header.block_number.as_ref() as u64;
     db.blocks.put(hash.as_ref(), block.clone()).await?;
-
-    let key = U64::from_u64(number);
-    let val = U256::from_hex(hash.as_ref())?;
-    db.blocks_index.write().await.insert(&key, val)?;
 
     // TODO: spawn
     for (idx, tx) in block.block_body_with_txs.transactions.iter().enumerate() {
@@ -314,7 +329,7 @@ pub async fn save_block(
         .await
         .lookup(&U64::from_u64(number - 1))?;
     if saved_parent_hash.is_none() {
-        return Ok(Some(Event::PullBlock(parent_hash)));
+        return Ok(Some(Event::PullBlock(number - 1, parent_hash)));
     }
 
     let saved_parent_hash = saved_parent_hash.unwrap();
@@ -409,7 +424,7 @@ pub fn get_classes(state: &dto::StateUpdate) -> impl Iterator<Item = (&Felt, &Fe
 // TODO: avoid function-scoped lock on Storage
 pub async fn purge_block(
     _db: &mut Storage,
-    _number: u64,
+    number: u64,
     hash: Felt,
     events: &mut Vec<Event>,
 ) -> anyhow::Result<()> {
@@ -417,7 +432,7 @@ pub async fn purge_block(
     // Currently re-pulling the block will restore the chain integrity,
     // but indexed data from "purged" block will remain available.
 
-    events.push(Event::PullBlock(hash));
+    events.push(Event::PullBlock(number, hash));
     Ok(())
 }
 
@@ -437,15 +452,9 @@ where
                 tracing::info!(seconds, "uptime");
             }
         }
-        Event::PullBlock(hash) => {
-            let number = pull_block(ctx.clone(), hash.clone(), &mut events).await?;
+        Event::PullBlock(number, hash) => {
+            let (number, hash) = pull_block(ctx.clone(), number, hash.clone(), &mut events).await?;
             tracing::info!(number, hash = hash.as_ref(), "Block done");
-            {
-                let ctx = ctx.lock().await;
-                let sync = &mut ctx.shared.lock().await.sync;
-                sync.lo = sync.lo.map(|lo| number.min(lo)).or(Some(number));
-                sync.hi = sync.hi.map(|hi| number.max(hi)).or(Some(number));
-            }
         }
         Event::PurgeBlock(number, hash) => {
             let db = &mut ctx.lock().await.db;
@@ -505,7 +514,7 @@ where
 
     let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref()).await?;
     if !block_exists {
-        Ok(Some(Event::PullBlock(block_hash)))
+        Ok(Some(Event::PullBlock(block_number, block_hash)))
     } else {
         Ok(Some(Event::Head(block_number, block_hash)))
     }

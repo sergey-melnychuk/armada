@@ -35,18 +35,21 @@ async fn main() -> anyhow::Result<()> {
         eth_contract_address: "0xde29d060D45901Fb19ED6C6e959EB22d8626708e".to_string(),
     };
 
-    let profile = match std::env::args().into_iter().nth(1).as_ref() {
+    let profile = match std::env::args().nth(1).as_ref() {
         Some(name) if name == "mainnet" => mainnet,
         Some(name) if name == "testnet" => testnet,
         Some(name) => {
-            anyhow::bail!("Unsupported network: {}. Supported networks: mainnet, testnet.", name);
+            anyhow::bail!(
+                "Unsupported network: {}. Supported networks: mainnet, testnet.",
+                name
+            );
         }
         None => {
             anyhow::bail!("Network is not defined. Supported networks: mainnet, testnet.");
         }
     };
 
-    tracing::info!(network=profile.network, "Armada is starting...");
+    tracing::info!(network = profile.network, "Armada is starting...");
 
     let storage_path = &format!("{home}/Temp/armada/{}", profile.network);
 
@@ -93,11 +96,26 @@ async fn main() -> anyhow::Result<()> {
             let lo_block_hash = ctx.db.blocks_index.read().await.lookup(&key)?.unwrap();
             let lo_block = ctx.db.blocks.get(&lo_block_hash.into_str()).await?.unwrap();
             let lo_parent_hash = lo_block.block_header.parent_hash.0;
-            tx.send(Event::PullBlock(lo_parent_hash)).await.ok();
+            tx.send(Event::PullBlock(lo - 1, lo_parent_hash)).await.ok();
         }
         tracing::info!(synced=?(lo, hi), "Sync running");
     } else {
         tracing::info!("Sync running");
+    }
+
+    {
+        let ctx = ctx.clone();
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let missing = armada::util::detect_gaps(ctx).await?;
+            let zero = armada::api::gen::Felt::try_new("0x0")?;
+            for number in missing {
+                let event = Event::PullBlock(number, zero.clone());
+                tx.send(event).await?;
+                tokio::time::sleep(SECOND).await;
+            }
+            Ok::<(), anyhow::Error>(())
+        });
     }
 
     let addr: SocketAddr = rpc_bind_addr.parse()?;
