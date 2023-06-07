@@ -24,7 +24,6 @@ pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result
         let mut total = 0;
         let mut found = false;
         let mut ret = Vec::new();
-        tracing::info!("Block gaps detection running...");
         while top > 0 {
             top -= 1;
             let key = U64::from_u64(top);
