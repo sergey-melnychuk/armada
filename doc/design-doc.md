@@ -339,5 +339,13 @@ cat << EOF > post.json
 {"jsonrpc":"2.0","method":"starknet_getTransactionByBlockIdAndIndex","params":[{"block_number":805543},0],"id":1}
 EOF
 
+cat << EOF > post.json
+{"jsonrpc":"2.0","method":"starknet_getBlockWithTxHashes","params":[{"block_number":35130}],"id":1}
+EOF
+
+cat << EOF > post.json
+{"jsonrpc":"2.0","method":"starknet_getBlockWithTxHashes","params":[{"block_hash":"0x64185eba772257a97d104f9ef14a50f9a6122d04f27f9f2b406474a999c9b68"}],"id":1}
+EOF
+
 ab -p post.json -T 'application/json' -c 100 -n 100000 http://127.0.0.1:9000/rpc/v0.3
 ```
