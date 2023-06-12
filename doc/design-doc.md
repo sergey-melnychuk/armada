@@ -90,11 +90,11 @@ Each entity has natural primary key, being it a hash, block number or an address
   - (32 bytes + 8 bytes) => 32 bytes
   - entry: 72 bytes
 
-### Account (TODO: suggest efficient indexing strategy)
+### Account
 
-Iterating through EVENT, NONCE, STATE and CLASS hashes (range `[(addr,0,0)..(addr,[KEY::MAX,]BLOCK::MAX))`) is enough to pull all data for a given address (account?), but perhabs applying more effient indexing makes sense for a use-case "pull all the data for a given account", especially for accounts with a lot of events.
+Iterating through EVENT, NONCE, STATE and CLASS hashes (range `[(addr,[0,]0)..(addr,[KEY::MAX,]BLOCK::MAX))`) is enough to pull all data for a given address (account?), but perhabs applying more effient indexing makes sense for a use-case "pull all the data for a given account", especially for accounts with a lot of events or transactions.
 
-Using a "block marker" can point to the blocks with account events, then just pulling such blocks and extracting the related events might be a reasonable trade-off between space and time complexity.
+Using a "block marker" can effectively point to the blocks with account events/txs, then just pulling such blocks and extracting the related events/txs might be a reasonable trade-off between space and time complexity.
 
 - (CONTRACT address, BLOCK number) => () (ACCOUNT)
   - source: BLOCK, STATE
