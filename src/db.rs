@@ -307,20 +307,3 @@ where
         Ok(())
     }
 }
-
-// TODO: remove
-// pub trait Index<K, V>
-// where
-//     K: AsRef<[u8]> + for<'a> From<&'a [u8]>,
-//     V: AsRef<[u8]> + for<'a> From<&'a [u8]>,
-// {
-//     fn new(path: &Path) -> Self;
-//     fn has(&self, key: &K) -> anyhow::Result<bool>;
-//     fn get(&self, key: &K) -> anyhow::Result<Option<V>>;
-//     fn del(&mut self, key: &K) -> anyhow::Result<Option<V>>;
-//     fn put(&mut self, key: &K, val: V) -> anyhow::Result<()>;
-
-//     fn min(&self) -> anyhow::Result<Option<K>>;
-//     fn max(&self) -> anyhow::Result<Option<K>>;
-//     // TODO: add range loookup (returning iterator)
-// }
