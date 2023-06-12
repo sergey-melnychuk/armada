@@ -13,7 +13,6 @@ use yakvdb::typed::DB;
 
 const SECOND: Duration = Duration::from_secs(1);
 
-#[allow(unused_variables)] // TODO: remove
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
