@@ -50,7 +50,7 @@ pub mod http {
     pub const HTTP_OK: u16 = 200;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct U256(pub [u8; 32]);
 
 impl U256 {
@@ -88,7 +88,7 @@ impl<'a> From<&'a [u8]> for U256 {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct U64(pub [u8; 8]);
 
 impl U64 {

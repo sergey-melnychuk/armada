@@ -448,15 +448,17 @@ where
 
         let address = U256::from_hex(contract_address.0.as_ref()).unwrap();
         let number = U64::from_u64(block_number);
-        let key = AddressAndNumber::from(address, number);
-        let class_hash: U256 = self
-            .db
-            .classes_index
-            .read()
-            .await
-            .lookup(&key)
-            .map_err(|_| crate::api::gen::error::CLASS_HASH_NOT_FOUND)?
-            .ok_or(crate::api::gen::error::CLASS_HASH_NOT_FOUND)?;
+        let key = AddressAndNumber::from(address.clone(), number);
+        let (found, class_hash) = {
+            let db = self.db.classes_index.read().await;
+            crate::db::get_or_below(&db, &key)
+        }
+        .map_err(|_| crate::api::gen::error::CLASS_HASH_NOT_FOUND)?
+        .ok_or(crate::api::gen::error::CLASS_HASH_NOT_FOUND)?;
+
+        if found.address() != address {
+            return Err(crate::api::gen::error::CLASS_HASH_NOT_FOUND.into());
+        }
 
         let felt = Felt::try_new(&class_hash.into_str()).unwrap();
         Ok(felt)

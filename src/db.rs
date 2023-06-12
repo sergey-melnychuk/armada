@@ -31,6 +31,7 @@ pub struct Storage {
     pub classes_index: Arc<RwLock<Store<AddressAndNumber, U256>>>,
 }
 
+#[derive(Clone)]
 pub struct BlockAndIndex([u8; 40]);
 
 impl BlockAndIndex {
@@ -62,6 +63,7 @@ impl<'a> From<&'a [u8]> for BlockAndIndex {
     }
 }
 
+#[derive(Clone)]
 pub struct AddressAndNumber([u8; 40]);
 
 impl AddressAndNumber {
@@ -93,6 +95,7 @@ impl<'a> From<&'a [u8]> for AddressAndNumber {
     }
 }
 
+#[derive(Clone)]
 pub struct AddressWithKeyAndNumber([u8; 72]);
 
 impl AddressWithKeyAndNumber {
@@ -200,6 +203,27 @@ impl Storage {
     }
 }
 
+pub fn get_or_below<K, V>(db: &Store<K, V>, key: &K) -> anyhow::Result<Option<(K, V)>>
+where
+    K: Clone + AsRef<[u8]> + for<'a> From<&'a [u8]>,
+    V: AsRef<[u8]> + for<'a> From<&'a [u8]>,
+{
+    let val = db.lookup(key)?;
+    if val.is_some() {
+        return Ok(Some(key.clone()).zip(val));
+    }
+
+    let below = db.below(key)?;
+    if below.is_none() {
+        return Ok(None);
+    }
+
+    let below = below.unwrap();
+    let val = db.lookup(&below)?;
+
+    Ok(Some(below).zip(val))
+}
+
 #[async_trait::async_trait]
 pub trait Repo<T: Serialize + DeserializeOwned> {
     async fn new(base: &Path) -> Self;
@@ -284,18 +308,19 @@ where
     }
 }
 
-pub trait Index<K, V>
-where
-    K: AsRef<[u8]> + for<'a> From<&'a [u8]>,
-    V: AsRef<[u8]> + for<'a> From<&'a [u8]>,
-{
-    fn new(path: &Path) -> Self;
-    fn has(&self, key: &K) -> anyhow::Result<bool>;
-    fn get(&self, key: &K) -> anyhow::Result<Option<V>>;
-    fn del(&mut self, key: &K) -> anyhow::Result<Option<V>>;
-    fn put(&mut self, key: &K, val: V) -> anyhow::Result<()>;
+// TODO: remove
+// pub trait Index<K, V>
+// where
+//     K: AsRef<[u8]> + for<'a> From<&'a [u8]>,
+//     V: AsRef<[u8]> + for<'a> From<&'a [u8]>,
+// {
+//     fn new(path: &Path) -> Self;
+//     fn has(&self, key: &K) -> anyhow::Result<bool>;
+//     fn get(&self, key: &K) -> anyhow::Result<Option<V>>;
+//     fn del(&mut self, key: &K) -> anyhow::Result<Option<V>>;
+//     fn put(&mut self, key: &K, val: V) -> anyhow::Result<()>;
 
-    fn min(&self) -> anyhow::Result<Option<K>>;
-    fn max(&self) -> anyhow::Result<Option<K>>;
-    // TODO: add range loookup (returning iterator)
-}
+//     fn min(&self) -> anyhow::Result<Option<K>>;
+//     fn max(&self) -> anyhow::Result<Option<K>>;
+//     // TODO: add range loookup (returning iterator)
+// }
