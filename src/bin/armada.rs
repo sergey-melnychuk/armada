@@ -34,17 +34,25 @@ async fn main() -> anyhow::Result<()> {
         eth_contract_address: "0xde29d060D45901Fb19ED6C6e959EB22d8626708e".to_string(),
     };
 
+    let integration = Profile {
+        network: "integration".to_string(),
+        eth_url: format!("https://goerli.infura.io/v3/{token}"),
+        seq_url: "https://external.integration.starknet.io".to_string(),
+        eth_contract_address: "0xd5c325D183C592C94998000C5e0EED9e6655c020".to_string(),
+    };
+
     let profile = match std::env::args().nth(1).as_ref() {
         Some(name) if name == "mainnet" => mainnet,
         Some(name) if name == "testnet" => testnet,
+        Some(name) if name == "integration" => integration,
         Some(name) => {
             anyhow::bail!(
-                "Unsupported network: {}. Supported networks: mainnet, testnet.",
+                "Unsupported network: {}. Supported networks: mainnet, testnet, integration.",
                 name
             );
         }
         None => {
-            anyhow::bail!("Network is not defined. Supported networks: mainnet, testnet.");
+            anyhow::bail!("Network is not defined. Supported networks: mainnet, testnet, integration.");
         }
     };
 
