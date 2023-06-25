@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::time::Instant;
 use std::{sync::Arc, time::Duration};
 
 use futures::Future;
@@ -202,17 +203,23 @@ where
     ETH: EthApi,
 {
     tracing::debug!(hash = hash.as_ref(), "Pulling block");
+    let block_total_metric = Instant::now();
 
+    let t = Instant::now();
     let block = fetch_block(ctx.clone(), number, &hash).await?;
+    metrics::gauge!("block_pull", t.elapsed().as_secs_f64());
+
     let block_number = *block.block_header.block_number.as_ref() as u64;
     let block_hash = block.block_header.block_hash.0.clone();
 
+    let t = Instant::now();
     if let Some(event) = {
         let db = &mut ctx.lock().await.db;
         save_block(db, block_hash.clone(), block).await?
     } {
         events.push(event);
     }
+    metrics::gauge!("block_save", t.elapsed().as_secs_f64());
 
     tracing::debug!(
         number = block_number,
@@ -220,6 +227,7 @@ where
         "Block saved"
     );
 
+    let t = Instant::now();
     let state = {
         let seq = &ctx.lock().await.seq;
         seq.get_state_by_hash(block_hash.as_ref()).await?
@@ -242,13 +250,16 @@ where
             Ok::<(), anyhow::Error>(())
         })
     };
+    metrics::gauge!("state_pull", t.elapsed().as_secs_f64());
 
+    let t = Instant::now();
     {
         let db = &mut ctx.lock().await.db;
         save_state(db, hash.clone(), block_number, state).await?
     };
 
     handle.await??;
+    metrics::gauge!("state_save", t.elapsed().as_secs_f64());
 
     tracing::debug!(
         number = block_number,
@@ -263,13 +274,20 @@ where
         db.blocks_index.write().await.insert(&key, val)?;
     }
 
-    {
+    let (lo, hi) = {
         let ctx = ctx.lock().await;
         let sync = &mut ctx.shared.lock().await.sync;
         sync.lo = sync.lo.map(|lo| number.min(lo)).or(Some(number));
         sync.hi = sync.hi.map(|hi| number.max(hi)).or(Some(number));
+        (sync.lo, sync.hi)
+    };
+
+    if let Some((lo, hi)) = lo.zip(hi) {
+        metrics::gauge!("sync_lo", lo as f64);
+        metrics::gauge!("sync_hi", hi as f64);
     }
 
+    metrics::gauge!("block_total", block_total_metric.elapsed().as_secs_f64());
     Ok((block_number, block_hash))
 }
 
@@ -448,6 +466,7 @@ where
     let mut events = Vec::new();
     match event {
         Event::Uptime { seconds } => {
+            metrics::gauge!("uptime", seconds as f64);
             if seconds > 0 && seconds % 60 == 0 {
                 tracing::info!(seconds, "uptime");
             }
@@ -462,11 +481,13 @@ where
             tracing::warn!(number, hash = hash.as_ref(), "Block purged");
         }
         Event::Head(number, hash) => {
+            metrics::gauge!("head_level_two", number as f64);
             tracing::info!(number, hash = hash.as_ref(), "L2 head");
         }
         Event::Ethereum(state) => {
             let number = state.state_block_number;
             let hash = state.state_block_hash.as_ref();
+            metrics::gauge!("head_level_one", number as f64);
             tracing::info!(number, hash, "L1 head");
         }
     }

@@ -31,6 +31,7 @@ pub struct Context<ETH, SEQ> {
     pub seq: SEQ,
     pub shared: Arc<Mutex<Shared>>,
     pub config: Config,
+    pub metrics: Option<metrics_exporter_prometheus::PrometheusHandle>,
 }
 
 impl<ETH, SEQ> Context<ETH, SEQ>
@@ -46,6 +47,14 @@ where
             seq,
             shared: Arc::new(Mutex::new(shared)),
             config,
+            metrics: None,
+        }
+    }
+
+    pub fn with_metrics(self, handle: metrics_exporter_prometheus::PrometheusHandle) -> Self {
+        Self {
+            metrics: Some(handle),
+            ..self
         }
     }
 

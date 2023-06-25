@@ -28,6 +28,8 @@ hex = "0.4.3"
 serde-tuple-vec-map = "1.0.1"
 yakvdb = "0.6.2"
 flate2 = { version = "1.0.26", features = ["zlib-ng"], default-features = false }
+metrics = "0.21.0"
+metrics-exporter-prometheus = "0.12.1"
 
 [dev-dependencies]
 tempdir = "0.3"

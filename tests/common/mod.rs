@@ -36,6 +36,7 @@ impl Test {
         let db = Storage::new(dir.path()).await;
 
         let config = Config::new(
+            "test".to_string(),
             ([127, 0, 0, 1], 0).into(),
             Duration::from_secs(1),
             Duration::from_secs(1),

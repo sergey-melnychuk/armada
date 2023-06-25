@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use iamgroot::jsonrpc;
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use crate::{api::gen, ctx::Context, eth::EthApi, seq::SeqApi, util::Waiter};
@@ -57,6 +58,7 @@ where
     match req {
         Request::Single(req) => {
             log::info!("method: {}", req.method);
+            metrics::counter!("rpc_request", 1, "method" => req.method.clone());
             let res = gen::handle(&state, &req).await;
             Ok(Json(Response::Single(res)))
         }
@@ -64,6 +66,7 @@ where
             let mut ret = Vec::with_capacity(reqs.len());
             for req in reqs {
                 log::info!("method: {}", req.method);
+                metrics::counter!("rpc_request", 1, "method" => req.method.clone());
                 let state = state.clone();
                 let res = gen::handle(&state, &req).await;
                 ret.push(res)
@@ -71,6 +74,19 @@ where
             Ok(Json(Response::Batch(ret)))
         }
     }
+}
+
+async fn handle_metrics<ETH, SEQ>(
+    State(state): State<Context<ETH, SEQ>>,
+) -> Result<impl IntoResponse, RpcError>
+where
+    ETH: EthApi,
+    SEQ: SeqApi,
+{
+    if let Some(handle) = state.metrics.as_ref() {
+        return Ok(handle.render().into_response());
+    }
+    Ok((StatusCode::NOT_FOUND, "Not Found").into_response())
 }
 
 async fn handle_status<ETH, SEQ>(
@@ -107,6 +123,7 @@ where
 {
     let app = Router::new()
         .route("/rpc/v0.3", post(handle_request))
+        .route("/metrics", get(handle_metrics))
         .route("/sync/status", get(handle_status))
         .with_state(ctx);
 

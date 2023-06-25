@@ -52,7 +52,9 @@ async fn main() -> anyhow::Result<()> {
             );
         }
         None => {
-            anyhow::bail!("Network is not defined. Supported networks: mainnet, testnet, integration.");
+            anyhow::bail!(
+                "Network is not defined. Supported networks: mainnet, testnet, integration."
+            );
         }
     };
 
@@ -65,6 +67,7 @@ async fn main() -> anyhow::Result<()> {
     let seq_poll_delay = 30 * SECOND;
 
     let config = Config::new(
+        profile.network.clone(),
         rpc_bind_addr.parse()?,
         SECOND,
         seq_poll_delay,
@@ -72,12 +75,20 @@ async fn main() -> anyhow::Result<()> {
         profile.eth_contract_address.to_string(),
     );
 
+    let builder = metrics_exporter_prometheus::PrometheusBuilder::new();
+    let handle = builder
+        .add_global_label("app", "armada")
+        .add_global_label("network", &profile.network)
+        .install_recorder()
+        .expect("failed to install prometheus recorder");
+
     let eth = EthClient::new(&profile.eth_url);
     let seq = SeqClient::new(&profile.seq_url);
     let db = Storage::new(storage_path).await;
     let shared = Shared::default();
 
     let ctx = Context::new(eth, seq, shared, db, config);
+    let ctx = ctx.with_metrics(handle);
     let source = Source::new(ctx.clone());
     source.add("uptime", sync::poll_uptime, SECOND).await;
     source.add("gateway", sync::poll_seq, seq_poll_delay).await;
