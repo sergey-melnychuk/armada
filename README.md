@@ -8,6 +8,10 @@ And a "sibling" of [Pathfinder](https://github.com/eqlabs/pathfinder).
 
 [Results](/doc/results.md)
 
+### Run
+
+`ARMADA_INFURA_TOKEN=${INFURA_TOKEN} bin/run ${HOME}/Temp/armada integration --metrics`
+
 ### Status
 
 - [x] Sequencer client
