@@ -116,6 +116,7 @@ where
                     }
                     Err(e) => {
                         tracing::error!(?event, reason=?e, "Handler failed");
+                        metrics::counter!("sync_error", 1, "reason" => format!("{e}"));
                         tokio::spawn(async move {
                             tokio::time::sleep(10 * delay).await;
                             tx.send(event).await.ok();
