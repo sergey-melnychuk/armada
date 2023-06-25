@@ -1,4 +1,5 @@
 pub mod api;
+pub mod arg;
 pub mod cfg;
 pub mod ctx;
 pub mod db;

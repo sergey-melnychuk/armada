@@ -1,6 +1,7 @@
 use std::{net::SocketAddr, time::Duration};
 
 use armada::{
+    arg::Args,
     cfg::{Config, Profile},
     ctx::{Context, Shared},
     db::Storage,
@@ -17,8 +18,9 @@ const SECOND: Duration = Duration::from_secs(1);
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let home = std::env::var("HOME")?;
-    let token = std::env::var("INFURA_TOKEN")?;
+    let args: Args = armada::arg::resolve()?;
+    let token = &args.infura_token;
+    let is_metrics_reporting_enabled = args.flags.contains("metrics");
 
     let mainnet = Profile {
         network: "mainnet".to_string(),
@@ -41,26 +43,24 @@ async fn main() -> anyhow::Result<()> {
         eth_contract_address: "0xd5c325D183C592C94998000C5e0EED9e6655c020".to_string(),
     };
 
-    let profile = match std::env::args().nth(1).as_ref() {
-        Some(name) if name == "mainnet" => mainnet,
-        Some(name) if name == "testnet" => testnet,
-        Some(name) if name == "integration" => integration,
-        Some(name) => {
+    let profile = match args.network {
+        name if name == "mainnet" => mainnet,
+        name if name == "testnet" => testnet,
+        name if name == "integration" => integration,
+        name => {
             anyhow::bail!(
                 "Unsupported network: {}. Supported networks: mainnet, testnet, integration.",
                 name
             );
         }
-        None => {
-            anyhow::bail!(
-                "Network is not defined. Supported networks: mainnet, testnet, integration."
-            );
-        }
     };
 
-    tracing::info!(network = profile.network, "Armada is starting...");
-
-    let storage_path = &format!("{home}/Temp/armada/{}", profile.network);
+    let storage_path = &format!("{}/{}", args.data_dir, profile.network);
+    tracing::info!(
+        network = profile.network,
+        storage = storage_path,
+        "Armada is starting..."
+    );
 
     let rpc_bind_addr = "0.0.0.0:9000";
     let eth_poll_delay = 120 * SECOND;
@@ -75,20 +75,23 @@ async fn main() -> anyhow::Result<()> {
         profile.eth_contract_address.to_string(),
     );
 
-    let builder = metrics_exporter_prometheus::PrometheusBuilder::new();
-    let handle = builder
-        .add_global_label("app", "armada")
-        .add_global_label("network", &profile.network)
-        .install_recorder()
-        .expect("failed to install prometheus recorder");
-
     let eth = EthClient::new(&profile.eth_url);
     let seq = SeqClient::new(&profile.seq_url);
     let db = Storage::new(storage_path).await;
     let shared = Shared::default();
 
     let ctx = Context::new(eth, seq, shared, db, config);
-    let ctx = ctx.with_metrics(handle);
+    let ctx = if is_metrics_reporting_enabled {
+        let builder = metrics_exporter_prometheus::PrometheusBuilder::new();
+        let handle = builder
+            .add_global_label("app", "armada")
+            .add_global_label("network", &profile.network)
+            .install_recorder()
+            .expect("failed to install prometheus recorder");
+        ctx.with_metrics(handle)
+    } else {
+        ctx
+    };
     let source = Source::new(ctx.clone());
     source.add("uptime", sync::poll_uptime, SECOND).await;
     source.add("gateway", sync::poll_seq, seq_poll_delay).await;
