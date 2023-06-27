@@ -21,7 +21,6 @@ pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result
     use yakvdb::typed::DB;
     let mut top = ctx.shared.lock().await.sync.hi.unwrap_or_default();
     tokio::spawn(async move {
-        let mut total = 0;
         let mut found = false;
         let mut ret = Vec::new();
         while top > 0 {
@@ -36,14 +35,55 @@ pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result
                 if found {
                     ret.push(top);
                 }
-                total += 1;
                 found = false;
             }
         }
-        tracing::info!(missing = total, "Block gaps detection done");
         Ok(ret)
     })
     .await?
+}
+
+pub async fn check_chain<A: Send, B: Send>(
+    ctx: Context<A, B>,
+    lim: u64,
+) -> anyhow::Result<Option<(u64, String)>> {
+    use crate::db::Repo;
+    use yakvdb::typed::DB;
+    let mut top = ctx.shared.lock().await.sync.hi.unwrap_or_default();
+    let min = top - lim;
+    tokio::spawn(async move {
+        let hash = ctx
+            .db
+            .blocks_index
+            .read()
+            .await
+            .lookup(&U64::from_u64(top))
+            .unwrap()
+            .unwrap();
+        let block = ctx.db.blocks.get(&hash.into_str()).await.unwrap().unwrap();
+        let mut parent = block.block_header.parent_hash.0.as_ref().to_string();
+        while top >= min {
+            top -= 1;
+            let hash = ctx
+                .db
+                .blocks_index
+                .read()
+                .await
+                .lookup(&U64::from_u64(top))
+                .unwrap()
+                .unwrap()
+                .into_str();
+            if hash != parent {
+                return Some((top, parent));
+            } else {
+                let block = ctx.db.blocks.get(&hash).await.unwrap().unwrap();
+                parent = block.block_header.parent_hash.0.as_ref().to_string();
+            }
+        }
+        None
+    })
+    .await
+    .map_err(|e| e.into())
 }
 
 pub mod http {

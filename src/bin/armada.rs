@@ -129,11 +129,30 @@ async fn main() -> anyhow::Result<()> {
         let tx = tx.clone();
         tokio::spawn(async move {
             let missing = armada::util::detect_gaps(ctx).await?;
+            if !missing.is_empty() {
+                tracing::info!(total = missing.len(), "Sync gap detected");
+            }
             let zero = armada::api::gen::Felt::try_new("0x0")?;
             for number in missing {
                 let event = Event::PullBlock(number, zero.clone());
                 tx.send(event).await?;
                 tokio::time::sleep(SECOND).await;
+            }
+            Ok::<(), anyhow::Error>(())
+        });
+    }
+
+    {
+        let ctx = ctx.clone();
+        let tx = tx.clone();
+        let len = 2000;
+        tokio::spawn(async move {
+            if let Some((number, hash)) = armada::util::check_chain(ctx, len).await? {
+                tracing::info!(at = number, "Broken chain detected");
+                let event = Event::PullBlock(number, armada::api::gen::Felt::try_new(&hash)?);
+                tx.send(event).await?;
+            } else {
+                tracing::info!(length = len, "Chain head validated successfully");
             }
             Ok::<(), anyhow::Error>(())
         });
