@@ -645,7 +645,7 @@ where
             u64::MAX
         };
 
-        if hi - lo + 1 > 100 {
+        if hi - lo + 1 > 100000 {
             return Err(iamgroot::jsonrpc::Error::new(
                 -1,
                 format!("Too many blocks: {}", hi - lo + 1),
@@ -663,85 +663,83 @@ where
             })
             .unwrap_or_default();
 
-        if keys.len() > 100 {
+        if keys.len() > 1000 {
             return Err(iamgroot::jsonrpc::Error::new(
                 -1,
                 format!("Too many keys: {}", keys.len()),
             ));
         }
 
-        let mut events: Vec<EmittedEvent> = Vec::new();
-        for n in lo..=hi {
-            let number = U64::from_u64(n);
-            for k in &keys {
-                let key = AddressWithKeyAndNumber::from(addr.clone(), k.clone(), number.clone());
+        tracing::debug!(method="getEvents", "Ready: blocks={}, keys={}", hi - lo + 1, keys.len());
 
-                let found = {
-                    let hash = self
-                        .db
-                        .blocks_index
-                        .read()
-                        .await
-                        .lookup(&number)
-                        .map_err(|e| {
-                            iamgroot::jsonrpc::Error::new(
-                                -1,
-                                format!("Failed to fetch block: {e:?}"),
-                            )
-                        })?;
+        let mut found: Vec<(U256, U64, U64)> = Vec::new();
+        for key in &keys {
+            let number = U64::from_u64(lo);
+            let mut current = AddressWithKeyAndNumber::from(addr.clone(), key.clone(), number.clone());
 
-                    let block = if let Some(hash) = hash.as_ref() {
-                        self.db.blocks.get(&hash.into_str()).await.ok().flatten()
-                    } else {
-                        None
-                    };
+            if let Some(tx) = self.db.events_index.read().await.lookup(&current)? {
+                found.push((key.clone(), number.clone(), tx.clone()));
+            }
 
-                    let tx = self
-                        .db
-                        .events_index
-                        .read()
-                        .await
-                        .lookup(&key)
-                        .map_err(|e| {
-                            iamgroot::jsonrpc::Error::new(
-                                -1,
-                                format!("Failed to lookup event: {e:?}"),
-                            )
-                        })?
-                        .map(|x| x.into_u64() as usize);
-
-                    block.zip(tx)
-                };
-
-                found
-                    .map(|(block, tx)| {
-                        let receipt = &block.receipts[tx];
-                        let transaction_hash = receipt.transaction_hash.clone();
-                        receipt
-                            .events
-                            .clone()
-                            .into_iter()
-                            .filter(|event| event.from_address.0.as_ref() == &addr.into_str())
-                            .filter(|event| {
-                                event
-                                    .event_content
-                                    .keys
-                                    .iter()
-                                    .any(|key| key.as_ref() == &k.into_str())
-                            })
-                            .map(move |event| EmittedEvent {
-                                block_hash: block.block_header.block_hash.clone(),
-                                block_number: block.block_header.block_number.clone(),
-                                event,
-                                transaction_hash: transaction_hash.clone(),
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                    .unwrap_or_default()
-                    .into_iter()
-                    .for_each(|event| events.push(event));
+            while let Some(next) = self.db.events_index.read().await.above(&current)? {
+                if next.address() != addr || &next.key() != key || next.number().into_u64() > hi {
+                    break;
+                }
+                if let Some(tx) = self.db.events_index.read().await.lookup(&next)? {
+                    found.push((key.clone(), next.number(), tx.clone()));
+                } else {
+                    break;
+                }
+                current = next;
             }
         }
+        tracing::debug!(method="getEvents", "Entries found: {}", found.len());
+
+        let mut events: Vec<EmittedEvent> = Vec::new();
+        for (key, number, tx) in found {
+            let addr = addr.into_str();
+            let key = key.into_str();
+            let tx = tx.into_u64() as usize;
+
+            let hash = self
+                .db
+                .blocks_index
+                .read()
+                .await
+                .lookup(&number)?
+                .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+            let block = self.db.blocks.get(&hash.into_str()).await?
+                .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+
+            if tx >= block.receipts.len() {
+                return Err(crate::api::gen::error::INVALID_TXN_INDEX.into());
+            }
+
+            let receipt = &block.receipts[tx];
+            receipt
+                .events
+                .clone()
+                .into_iter()
+                .filter(|event| event.from_address.0.as_ref() == &addr)
+                .filter(|event| {
+                    event
+                        .event_content
+                        .keys
+                        .iter()
+                        .any(|k| k.as_ref() == &key)
+                })
+                .map(move |event| EmittedEvent {
+                    block_hash: block.block_header.block_hash.clone(),
+                    block_number: block.block_header.block_number.clone(),
+                    event,
+                    transaction_hash: receipt.transaction_hash.clone(),
+                })
+                .for_each(|event| {
+                    events.push(event);
+                });
+        }
+        tracing::debug!(method="getEvents", "Events found: {}", events.len());
 
         Ok(EventsChunk {
             continuation_token: None,
