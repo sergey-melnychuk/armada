@@ -15,7 +15,7 @@ once_cell = "1.17"
 regex = "1.7"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 dotenv = "0.15.0"
-iamgroot = { version = "0.1", features = ["anyhow"] }
+iamgroot = { version = "0.1.5", features = ["anyhow"] }
 log = "0.4.17"
 env_logger = "0.10.0"
 anyhow = "1.0.71"
