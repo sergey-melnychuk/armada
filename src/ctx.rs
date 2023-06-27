@@ -670,12 +670,18 @@ where
             ));
         }
 
-        tracing::debug!(method="getEvents", "Ready: blocks={}, keys={}", hi - lo + 1, keys.len());
+        tracing::debug!(
+            method = "getEvents",
+            "Ready: blocks={}, keys={}",
+            hi - lo + 1,
+            keys.len()
+        );
 
         let mut found: Vec<(U256, U64, U64)> = Vec::new();
         for key in &keys {
             let number = U64::from_u64(lo);
-            let mut current = AddressWithKeyAndNumber::from(addr.clone(), key.clone(), number.clone());
+            let mut current =
+                AddressWithKeyAndNumber::from(addr.clone(), key.clone(), number.clone());
 
             if let Some(tx) = self.db.events_index.read().await.lookup(&current)? {
                 found.push((key.clone(), number.clone(), tx.clone()));
@@ -693,7 +699,7 @@ where
                 current = next;
             }
         }
-        tracing::debug!(method="getEvents", "Entries found: {}", found.len());
+        tracing::debug!(method = "getEvents", "Entries found: {}", found.len());
 
         let mut events: Vec<EmittedEvent> = Vec::new();
         for (key, number, tx) in found {
@@ -709,7 +715,11 @@ where
                 .lookup(&number)?
                 .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
-            let block = self.db.blocks.get(&hash.into_str()).await?
+            let block = self
+                .db
+                .blocks
+                .get(&hash.into_str())
+                .await?
                 .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
             if tx >= block.receipts.len() {
@@ -722,13 +732,7 @@ where
                 .clone()
                 .into_iter()
                 .filter(|event| event.from_address.0.as_ref() == &addr)
-                .filter(|event| {
-                    event
-                        .event_content
-                        .keys
-                        .iter()
-                        .any(|k| k.as_ref() == &key)
-                })
+                .filter(|event| event.event_content.keys.iter().any(|k| k.as_ref() == &key))
                 .map(move |event| EmittedEvent {
                     block_hash: block.block_header.block_hash.clone(),
                     block_number: block.block_header.block_number.clone(),
@@ -739,7 +743,7 @@ where
                     events.push(event);
                 });
         }
-        tracing::debug!(method="getEvents", "Events found: {}", events.len());
+        tracing::debug!(method = "getEvents", "Events found: {}", events.len());
 
         Ok(EventsChunk {
             continuation_token: None,
