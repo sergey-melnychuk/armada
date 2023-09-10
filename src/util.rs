@@ -19,12 +19,21 @@ use crate::{
 
 pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result<Vec<u64>> {
     use yakvdb::typed::DB;
-    let mut top = ctx.shared.lock().await.sync.hi.unwrap_or_default();
+    let max = ctx.shared.lock().await.sync.hi.unwrap_or_default();
+    let mut top = max;
+    let mut ratio = 0;
     tokio::spawn(async move {
         let mut found = false;
         let mut ret = Vec::new();
         while top > 0 {
             top -= 1;
+
+            let r = 100 - top * 100 / max;
+            if r < 100 && r > 0 && r != ratio && r % 10 == 0 {
+                ratio = r;
+                tracing::info!("Gap detection: {ratio}% done");
+            }
+
             let key = U64::from_u64(top);
 
             let hash = ctx.db.blocks_index.read().await.lookup(&key)?;
@@ -38,6 +47,7 @@ pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result
                 found = false;
             }
         }
+        tracing::info!("Gap detection: 100% done");
         Ok(ret)
     })
     .await?
@@ -71,7 +81,7 @@ pub async fn check_chain<A: Send, B: Send>(
                 .await
                 .lookup(&U64::from_u64(top))
                 .unwrap()
-                .unwrap()
+                .unwrap() // TODO FIXME: "called `Option::unwrap()` on a `None` value"
                 .into_str();
             if hash != parent {
                 return Some((top, parent));
