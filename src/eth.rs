@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{api::gen::NumAsHex, util::http};
 
 #[derive(Clone, Debug)]
@@ -40,6 +42,7 @@ pub struct EthClient {
 impl EthClient {
     pub fn new(url: &str) -> Self {
         let http = reqwest::ClientBuilder::new()
+            .timeout(Duration::from_secs(60))
             .build()
             .expect("Failed to create HTTP client");
         Self {

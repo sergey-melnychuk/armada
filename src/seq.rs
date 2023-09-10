@@ -1,4 +1,5 @@
 use serde::de::DeserializeOwned;
+use std::time::Duration;
 
 use crate::{
     api::gen::{BlockWithTxs, PendingBlockWithTxs},
@@ -146,6 +147,7 @@ pub struct SeqClient {
 impl SeqClient {
     pub fn new(url: &str) -> Self {
         let http = reqwest::ClientBuilder::new()
+            .timeout(Duration::from_secs(60))
             .build()
             .expect("Failed to create HTTP client");
         Self {
