@@ -81,8 +81,11 @@ pub async fn check_chain<A: Send, B: Send>(
                 .await
                 .lookup(&U64::from_u64(top))
                 .unwrap()
-                .unwrap() // TODO FIXME: "called `Option::unwrap()` on a `None` value"
-                .into_str();
+                .map(|hash| hash.into_str());
+            let hash = match hash {
+                Some(hash) => hash,
+                None => break,
+            };
             if hash != parent {
                 return Some((top, parent));
             } else {
