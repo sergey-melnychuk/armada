@@ -163,7 +163,7 @@ where
                 )
             })?
             .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
-        block.receipts.clear();
+        block.receipts.clear(); // TODO FIXME: proper serialization of tx receipt!
 
         Ok(GetBlockWithTxsResult::BlockWithTxs(block))
     }
