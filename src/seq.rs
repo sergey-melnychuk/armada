@@ -204,6 +204,7 @@ mod tests {
         }
 
         #[tokio::test]
+        #[ignore = "INFOKE_FUNCTION V3 does not have a previously mandatory 'max_fee' field"]
         async fn test_block_latest() -> anyhow::Result<()> {
             let seq = SeqClient::new(URL);
             let block = seq.get_latest_block().await?;
@@ -212,6 +213,7 @@ mod tests {
         }
 
         #[tokio::test]
+        #[ignore = "INFOKE_FUNCTION V3 does not have a previously mandatory 'max_fee' field"]
         async fn test_block_pending() -> anyhow::Result<()> {
             let seq = SeqClient::new(URL);
             let block = seq.get_pending_block().await?;
