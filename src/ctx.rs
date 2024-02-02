@@ -6,7 +6,9 @@ use yakvdb::typed::DB;
 use crate::{
     api::gen::*,
     cfg::Config,
-    db::{AddressAndNumber, AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage},
+    db::{
+        AddressAndNumber, AddressWithKeyAndNumber, BlockAndIndex, Repo, Storage,
+    },
     eth::EthApi,
     seq::SeqApi,
     util::{get_txn_receipt, map_class, map_state_update, tx_hash, U256, U64},
@@ -39,7 +41,13 @@ where
     ETH: EthApi,
     SEQ: SeqApi,
 {
-    pub fn new(eth: ETH, seq: SEQ, shared: Shared, db: Storage, config: Config) -> Self {
+    pub fn new(
+        eth: ETH,
+        seq: SEQ,
+        shared: Shared,
+        db: Storage,
+        config: Config,
+    ) -> Self {
         Self {
             since: Instant::now(),
             db,
@@ -51,7 +59,10 @@ where
         }
     }
 
-    pub fn with_metrics(self, handle: metrics_exporter_prometheus::PrometheusHandle) -> Self {
+    pub fn with_metrics(
+        self,
+        handle: metrics_exporter_prometheus::PrometheusHandle,
+    ) -> Self {
         Self {
             metrics: Some(handle),
             ..self
@@ -67,7 +78,9 @@ where
         block_id: BlockId,
     ) -> std::result::Result<u64, iamgroot::jsonrpc::Error> {
         let block_number = match block_id {
-            BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            BlockId::BlockNumber { block_number } => {
+                *block_number.as_ref() as u64
+            }
             BlockId::BlockHash { block_hash } => {
                 let key = block_hash.0.as_ref();
                 let block = self
@@ -105,7 +118,8 @@ where
     async fn getBlockWithTxHashes(
         &self,
         block_id: BlockId,
-    ) -> std::result::Result<GetBlockWithTxHashesResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<GetBlockWithTxHashesResult, iamgroot::jsonrpc::Error>
+    {
         let block = match self.getBlockWithTxs(block_id).await? {
             GetBlockWithTxsResult::BlockWithTxs(block) => block,
             _ => {
@@ -122,7 +136,9 @@ where
 
         Ok(GetBlockWithTxHashesResult::BlockWithTxHashes(
             BlockWithTxHashes {
-                block_body_with_tx_hashes: BlockBodyWithTxHashes { transactions: txs },
+                block_body_with_tx_hashes: BlockBodyWithTxHashes {
+                    transactions: txs,
+                },
                 block_header: block.block_header.clone(),
                 status: block.status,
             },
@@ -132,7 +148,8 @@ where
     async fn getBlockWithTxs(
         &self,
         block_id: BlockId,
-    ) -> std::result::Result<GetBlockWithTxsResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<GetBlockWithTxsResult, iamgroot::jsonrpc::Error>
+    {
         let hash = match block_id {
             BlockId::BlockHash { block_hash } => block_hash,
             BlockId::BlockNumber { block_number } => {
@@ -171,7 +188,8 @@ where
     async fn getStateUpdate(
         &self,
         block_id: BlockId,
-    ) -> std::result::Result<GetStateUpdateResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<GetStateUpdateResult, iamgroot::jsonrpc::Error>
+    {
         let hash = match block_id {
             BlockId::BlockHash { block_hash } => block_hash,
             BlockId::BlockNumber { block_number } => {
@@ -214,7 +232,9 @@ where
         block_id: BlockId,
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
         let block_number = match block_id {
-            BlockId::BlockNumber { block_number } => *block_number.as_ref() as u64,
+            BlockId::BlockNumber { block_number } => {
+                *block_number.as_ref() as u64
+            }
             BlockId::BlockHash { block_hash } => {
                 let key = block_hash.0.as_ref();
                 let block = self
@@ -237,11 +257,18 @@ where
             }
         };
 
-        let address = U256::from_hex(contract_address.0.as_ref()).map_err(|e| {
-            iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read address: '{e}'"))
-        })?;
+        let address =
+            U256::from_hex(contract_address.0.as_ref()).map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to read address: '{e}'"),
+                )
+            })?;
         let storage_key = U256::from_hex(key.as_ref()).map_err(|e| {
-            iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+            iamgroot::jsonrpc::Error::new(
+                -65000,
+                format!("Failed to read key: '{e}'"),
+            )
         })?;
         let number = U64::from_u64(block_number);
         let item = AddressWithKeyAndNumber::from(address, storage_key, number);
@@ -259,40 +286,47 @@ where
             item
         };
 
-        let result = self
-            .db
-            .states_index
-            .read()
-            .await
-            .lookup(&item)
-            .map_err(|e| {
-                iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
-            })?;
-
-        let result = if let Some(result) = result {
-            Some(result)
-        } else if let Some(below) = self
-            .db
-            .states_index
-            .read()
-            .await
-            .below(&item)
-            .map_err(|e| {
-                iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
-            })?
-        {
+        let result =
             self.db
                 .states_index
                 .read()
                 .await
-                .lookup(&below)
+                .lookup(&item)
                 .map_err(|e| {
-                    iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read key: '{e}'"))
+                    iamgroot::jsonrpc::Error::new(
+                        -65000,
+                        format!("Failed to read key: '{e}'"),
+                    )
+                })?;
+
+        let result =
+            if let Some(result) = result {
+                Some(result)
+            } else if let Some(below) = self
+                .db
+                .states_index
+                .read()
+                .await
+                .below(&item)
+                .map_err(|e| {
+                    iamgroot::jsonrpc::Error::new(
+                        -65000,
+                        format!("Failed to read key: '{e}'"),
+                    )
                 })?
-        } else {
-            None
-        }
-        .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
+            {
+                self.db.states_index.read().await.lookup(&below).map_err(
+                    |e| {
+                        iamgroot::jsonrpc::Error::new(
+                            -65000,
+                            format!("Failed to read key: '{e}'"),
+                        )
+                    },
+                )?
+            } else {
+                None
+            }
+            .ok_or(crate::api::gen::error::BLOCK_NOT_FOUND)?;
 
         let felt = Felt::try_new(&result.into_str())?;
         Ok(felt)
@@ -440,7 +474,11 @@ where
             .map_err(|e| {
                 iamgroot::jsonrpc::Error::new(
                     -65000,
-                    format!("Failed to fetch class '{}': {:?}", class_hash.as_ref(), e),
+                    format!(
+                        "Failed to fetch class '{}': {:?}",
+                        class_hash.as_ref(),
+                        e
+                    ),
                 )
             })?
             .ok_or(crate::api::gen::error::CLASS_HASH_NOT_FOUND)?;
@@ -486,16 +524,21 @@ where
             GetClassResult::ContractClass(contract_class) => {
                 GetClassAtResult::ContractClass(contract_class)
             }
-            GetClassResult::DeprecatedContractClass(deprecated_contract_class) => {
-                GetClassAtResult::DeprecatedContractClass(deprecated_contract_class)
-            }
+            GetClassResult::DeprecatedContractClass(
+                deprecated_contract_class,
+            ) => GetClassAtResult::DeprecatedContractClass(
+                deprecated_contract_class,
+            ),
         })
     }
 
     async fn getBlockTransactionCount(
         &self,
         block_id: BlockId,
-    ) -> std::result::Result<GetBlockTransactionCountResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<
+        GetBlockTransactionCountResult,
+        iamgroot::jsonrpc::Error,
+    > {
         let block = match self.getBlockWithTxs(block_id).await? {
             GetBlockWithTxsResult::BlockWithTxs(block) => block,
             _ => {
@@ -524,13 +567,18 @@ where
         not_implemented()
     }
 
-    async fn blockNumber(&self) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
+    async fn blockNumber(
+        &self,
+    ) -> std::result::Result<BlockNumber, iamgroot::jsonrpc::Error> {
         let num = {
             let idx = self.db.blocks_index.read().await;
             idx.max()
         }
         .map_err(|e: anyhow::Error| {
-            iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+            iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Failed to read block index: {e:?}"),
+            )
         })?
         .ok_or(iamgroot::jsonrpc::Error::new(
             -1,
@@ -542,7 +590,8 @@ where
 
     async fn blockHashAndNumber(
         &self,
-    ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<BlockHashAndNumberResult, iamgroot::jsonrpc::Error>
+    {
         let (num, hash) = {
             let idx = self.db.blocks_index.read().await;
             idx.max().and_then(|max| {
@@ -555,7 +604,10 @@ where
             })
         }
         .map_err(|e: anyhow::Error| {
-            iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+            iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Failed to read block index: {e:?}"),
+            )
         })?
         .ok_or(iamgroot::jsonrpc::Error::new(
             -1,
@@ -568,20 +620,25 @@ where
         })
     }
 
-    async fn chainId(&self) -> std::result::Result<ChainId, iamgroot::jsonrpc::Error> {
+    async fn chainId(
+        &self,
+    ) -> std::result::Result<ChainId, iamgroot::jsonrpc::Error> {
         ChainId::try_new("0xCAFEBABE") // TODO: make it right
     }
 
     async fn pendingTransactions(
         &self,
-    ) -> std::result::Result<PendingTransactionsResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<PendingTransactionsResult, iamgroot::jsonrpc::Error>
+    {
         Err(iamgroot::jsonrpc::Error::new(
             -1,
             "'Pending' block is not supported".to_string(),
         ))
     }
 
-    async fn syncing(&self) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
+    async fn syncing(
+        &self,
+    ) -> std::result::Result<SyncingSyncing, iamgroot::jsonrpc::Error> {
         let (lo, lo_hash, hi, hi_hash) = async {
             let idx = self.db.blocks_index.read().await;
             let min = idx.min()?;
@@ -600,10 +657,15 @@ where
         }
         .await
         .map_err(|e: anyhow::Error| {
-            iamgroot::jsonrpc::Error::new(-1, format!("Failed to read block index: {e:?}"))
+            iamgroot::jsonrpc::Error::new(
+                -1,
+                format!("Failed to read block index: {e:?}"),
+            )
         })?;
         let (lo, lo_hash, hi, hi_hash) = match (lo, lo_hash, hi, hi_hash) {
-            (Some(lo), Some(lo_hash), Some(hi), Some(hi_hash)) => (lo, lo_hash, hi, hi_hash),
+            (Some(lo), Some(lo_hash), Some(hi), Some(hi_hash)) => {
+                (lo, lo_hash, hi, hi_hash)
+            }
             _ => return Ok(SyncingSyncing::Boolean(false)),
         };
         let hi_hash = BlockHash(Felt::try_new(&hi_hash.into_str())?);
@@ -680,18 +742,30 @@ where
         let mut found: Vec<(U256, U64, U64)> = Vec::new();
         for key in &keys {
             let number = U64::from_u64(lo);
-            let mut current =
-                AddressWithKeyAndNumber::from(addr.clone(), key.clone(), number.clone());
+            let mut current = AddressWithKeyAndNumber::from(
+                addr.clone(),
+                key.clone(),
+                number.clone(),
+            );
 
-            if let Some(tx) = self.db.events_index.read().await.lookup(&current)? {
+            if let Some(tx) =
+                self.db.events_index.read().await.lookup(&current)?
+            {
                 found.push((key.clone(), number.clone(), tx.clone()));
             }
 
-            while let Some(next) = self.db.events_index.read().await.above(&current)? {
-                if next.address() != addr || &next.key() != key || next.number().into_u64() > hi {
+            while let Some(next) =
+                self.db.events_index.read().await.above(&current)?
+            {
+                if next.address() != addr
+                    || &next.key() != key
+                    || next.number().into_u64() > hi
+                {
                     break;
                 }
-                if let Some(tx) = self.db.events_index.read().await.lookup(&next)? {
+                if let Some(tx) =
+                    self.db.events_index.read().await.lookup(&next)?
+                {
                     found.push((key.clone(), next.number(), tx.clone()));
                 } else {
                     break;
@@ -732,7 +806,9 @@ where
                 .clone()
                 .into_iter()
                 .filter(|event| event.from_address.0.as_ref() == &addr)
-                .filter(|event| event.event_content.keys.iter().any(|k| k.as_ref() == &key))
+                .filter(|event| {
+                    event.event_content.keys.iter().any(|k| k.as_ref() == &key)
+                })
                 .map(move |event| EmittedEvent {
                     block_hash: block.block_header.block_hash.clone(),
                     block_number: block.block_header.block_number.clone(),
@@ -758,9 +834,13 @@ where
     ) -> std::result::Result<Felt, iamgroot::jsonrpc::Error> {
         let block_number = self.get_block_number(block_id).await?;
 
-        let address = U256::from_hex(contract_address.0.as_ref()).map_err(|e| {
-            iamgroot::jsonrpc::Error::new(-65000, format!("Failed to read address: '{e}'"))
-        })?;
+        let address =
+            U256::from_hex(contract_address.0.as_ref()).map_err(|e| {
+                iamgroot::jsonrpc::Error::new(
+                    -65000,
+                    format!("Failed to read address: '{e}'"),
+                )
+            })?;
         let number = U64::from_u64(block_number);
         let key = AddressAndNumber::from(address.clone(), number);
 
@@ -782,21 +862,28 @@ where
     async fn addInvokeTransaction(
         &self,
         _invoke_transaction: BroadcastedInvokeTxn,
-    ) -> std::result::Result<AddInvokeTransactionResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<AddInvokeTransactionResult, iamgroot::jsonrpc::Error>
+    {
         not_implemented()
     }
 
     async fn addDeclareTransaction(
         &self,
         _declare_transaction: BroadcastedDeclareTxn,
-    ) -> std::result::Result<AddDeclareTransactionResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<
+        AddDeclareTransactionResult,
+        iamgroot::jsonrpc::Error,
+    > {
         not_implemented()
     }
 
     async fn addDeployAccountTransaction(
         &self,
         _deploy_account_transaction: BroadcastedDeployAccountTxn,
-    ) -> std::result::Result<AddDeployAccountTransactionResult, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<
+        AddDeployAccountTransactionResult,
+        iamgroot::jsonrpc::Error,
+    > {
         not_implemented()
     }
 
@@ -812,15 +899,20 @@ where
         _block_id: BlockId,
         _transaction: Transaction,
         _simulation_flags: SimulationFlags,
-    ) -> std::result::Result<SimulateTransactionSimulatedTransactions, iamgroot::jsonrpc::Error>
-    {
+    ) -> std::result::Result<
+        SimulateTransactionSimulatedTransactions,
+        iamgroot::jsonrpc::Error,
+    > {
         not_implemented()
     }
 
     async fn traceBlockTransactions(
         &self,
         _block_hash: BlockHash,
-    ) -> std::result::Result<TraceBlockTransactionsTraces, iamgroot::jsonrpc::Error> {
+    ) -> std::result::Result<
+        TraceBlockTransactionsTraces,
+        iamgroot::jsonrpc::Error,
+    > {
         not_implemented()
     }
 }

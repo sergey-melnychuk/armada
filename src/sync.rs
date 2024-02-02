@@ -91,11 +91,18 @@ impl<T: Send + 'static, C: Send + 'static> Source<T, C> {
     }
 }
 
-pub async fn sync<ETH, SEQ, F, R>(source: Source<Event, Context<ETH, SEQ>>, handler: F) -> Waiter
+pub async fn sync<ETH, SEQ, F, R>(
+    source: Source<Event, Context<ETH, SEQ>>,
+    handler: F,
+) -> Waiter
 where
     ETH: EthApi,
     SEQ: SeqApi,
-    F: Fn(Arc<Mutex<Context<ETH, SEQ>>>, Event) -> R + Copy + Send + Sync + 'static,
+    F: Fn(Arc<Mutex<Context<ETH, SEQ>>>, Event) -> R
+        + Copy
+        + Send
+        + Sync
+        + 'static,
     R: Future<Output = anyhow::Result<Vec<Event>>> + Send + 'static,
 {
     let delay = source.ctx().lock().await.config.src_poll_delay;
@@ -244,7 +251,8 @@ where
                 if ctx.lock().await.db.classes.has(&hash).await? {
                     continue;
                 }
-                let class = ctx.lock().await.seq.get_class_by_hash(&hash).await?;
+                let class =
+                    ctx.lock().await.seq.get_class_by_hash(&hash).await?;
                 ctx.lock().await.db.classes.put(&hash, class).await?;
                 tracing::debug!(hash, "Class saved");
             }
@@ -322,7 +330,11 @@ pub async fn save_block(
                 let event_key = U256::from_hex(key.as_ref()).unwrap();
                 let num = U64::from_u64(number);
 
-                let key = AddressWithKeyAndNumber::from(address, event_key.clone(), num);
+                let key = AddressWithKeyAndNumber::from(
+                    address,
+                    event_key.clone(),
+                    num,
+                );
                 let val = U64::from_u64(receipt.transaction_index as u64);
                 db.events_index.write().await.insert(&key, val)?;
                 tracing::debug!(
@@ -396,7 +408,11 @@ pub async fn save_state(
         for kv in kvs {
             let key = U256::from_hex(kv.key.as_ref()).unwrap();
             let val = U256::from_hex(kv.value.as_ref()).unwrap();
-            let item = AddressWithKeyAndNumber::from(address.clone(), key, number.clone());
+            let item = AddressWithKeyAndNumber::from(
+                address.clone(),
+                key,
+                number.clone(),
+            );
             db.states_index.write().await.insert(&item, val)?;
             tracing::debug!(
                 address = addr.as_ref(),
@@ -425,7 +441,9 @@ pub async fn save_state(
     Ok(())
 }
 
-pub fn get_classes(state: &dto::StateUpdate) -> impl Iterator<Item = (&Felt, &Felt)> + '_ {
+pub fn get_classes(
+    state: &dto::StateUpdate,
+) -> impl Iterator<Item = (&Felt, &Felt)> + '_ {
     state
         .state_diff
         .deployed_contracts
@@ -473,7 +491,9 @@ where
             }
         }
         Event::PullBlock(number, hash) => {
-            let (number, hash) = pull_block(ctx.clone(), number, hash.clone(), &mut events).await?;
+            let (number, hash) =
+                pull_block(ctx.clone(), number, hash.clone(), &mut events)
+                    .await?;
             tracing::info!(number, hash = hash.as_ref(), "Block done");
         }
         Event::PurgeBlock(number, hash) => {
@@ -508,7 +528,9 @@ where
     Ok(Some(Event::Uptime { seconds }))
 }
 
-pub async fn poll_eth<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
+pub async fn poll_eth<ETH, SEQ>(
+    ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+) -> anyhow::Result<Option<Event>>
 where
     ETH: EthApi,
     SEQ: SeqApi,
@@ -518,7 +540,9 @@ where
     Ok(Some(Event::Ethereum(state)))
 }
 
-pub async fn poll_seq<ETH, SEQ>(ctx: Arc<Mutex<Context<ETH, SEQ>>>) -> anyhow::Result<Option<Event>>
+pub async fn poll_seq<ETH, SEQ>(
+    ctx: Arc<Mutex<Context<ETH, SEQ>>>,
+) -> anyhow::Result<Option<Event>>
 where
     ETH: EthApi,
     SEQ: SeqApi,
@@ -534,7 +558,8 @@ where
         "Latest block"
     );
 
-    let block_exists = ctx.lock().await.db.blocks.has(block_hash.as_ref()).await?;
+    let block_exists =
+        ctx.lock().await.db.blocks.has(block_hash.as_ref()).await?;
     if !block_exists {
         Ok(Some(Event::PullBlock(block_number, block_hash)))
     } else {

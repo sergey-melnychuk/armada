@@ -41,7 +41,9 @@ impl SeqApi for TestSeq {
         Err(anyhow::anyhow!("Block not found"))
     }
 
-    async fn get_latest_block(&self) -> anyhow::Result<armada::api::gen::BlockWithTxs> {
+    async fn get_latest_block(
+        &self,
+    ) -> anyhow::Result<armada::api::gen::BlockWithTxs> {
         let latest = self.latest().await;
         if let Some(latest) = latest.as_ref() {
             return Ok(latest.clone());
@@ -49,7 +51,9 @@ impl SeqApi for TestSeq {
         Err(anyhow::anyhow!("Block not found"))
     }
 
-    async fn get_pending_block(&self) -> anyhow::Result<armada::api::gen::PendingBlockWithTxs> {
+    async fn get_pending_block(
+        &self,
+    ) -> anyhow::Result<armada::api::gen::PendingBlockWithTxs> {
         Err(anyhow::anyhow!("Block not found"))
     }
 

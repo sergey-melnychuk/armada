@@ -16,7 +16,8 @@ async fn test_sync_events() -> anyhow::Result<()> {
 
     let latest: BlockWithTxs = get_file("etc/805543-block.json").await?;
     let latest_number = *latest.block_header.block_number.as_ref() as u64;
-    let latest_hash = NumAsHex::try_new(latest.block_header.block_hash.0.as_ref())?;
+    let latest_hash =
+        NumAsHex::try_new(latest.block_header.block_hash.0.as_ref())?;
 
     *test.ctx.seq.latest().await = Some(latest.clone());
 

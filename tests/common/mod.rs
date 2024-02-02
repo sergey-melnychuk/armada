@@ -47,7 +47,8 @@ impl Test {
         let ctx = Context::new(eth, seq, shared, db, config);
 
         let http = reqwest::ClientBuilder::new().build().expect("http");
-        let (addr, server) = armada::rpc::serve(&([127, 0, 0, 1], 0).into(), ctx.clone()).await;
+        let (addr, server) =
+            armada::rpc::serve(&([127, 0, 0, 1], 0).into(), ctx.clone()).await;
         let url = format!("http://{}/rpc/v0.3", addr);
 
         Self {
@@ -60,7 +61,10 @@ impl Test {
     }
 
     #[allow(dead_code)] // IDK why but clippy thinks this method is a dead code (it is not)
-    pub async fn rpc<T: Serialize, R: DeserializeOwned>(&self, req: T) -> anyhow::Result<R> {
+    pub async fn rpc<T: Serialize, R: DeserializeOwned>(
+        &self,
+        req: T,
+    ) -> anyhow::Result<R> {
         let mut res: jsonrpc::Response = self
             .http
             .post(&self.url)

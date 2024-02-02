@@ -23,10 +23,18 @@ impl EthApi for EthClient {
                 .call_starknet_contract(hash.as_ref(), address, "stateRoot()")
                 .await?,
             state_block_hash: self
-                .call_starknet_contract(hash.as_ref(), address, "stateBlockHash()")
+                .call_starknet_contract(
+                    hash.as_ref(),
+                    address,
+                    "stateBlockHash()",
+                )
                 .await?,
             state_block_number: self
-                .call_starknet_contract(hash.as_ref(), address, "stateBlockNumber()")
+                .call_starknet_contract(
+                    hash.as_ref(),
+                    address,
+                    "stateBlockNumber()",
+                )
                 .await
                 .and_then(parse_hex_as_num)?,
         })
@@ -89,7 +97,10 @@ impl EthClient {
         .and_then(|value| parse_num_as_hex(&value))
     }
 
-    async fn call_ethereum(&self, value: serde_json::Value) -> anyhow::Result<serde_json::Value> {
+    async fn call_ethereum(
+        &self,
+        value: serde_json::Value,
+    ) -> anyhow::Result<serde_json::Value> {
         let res = self.http.post(&self.url).json(&value).send().await?;
 
         let status = res.status();

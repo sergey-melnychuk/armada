@@ -4,20 +4,24 @@ use tokio::{sync::oneshot, task::JoinHandle};
 
 use crate::{
     api::gen::{
-        Address, BlockHash, BlockStatus, BlockWithTxs, CommonReceiptProperties, ContractClass,
-        ContractClassEntryPoint, ContractStorageDiffItem, DeclareTxn, DeclareTxnReceipt,
-        DeclareTxnReceiptType, DeclaredClassesItem, DeployAccountTxnReceipt,
-        DeployAccountTxnReceiptType, DeployTxnReceipt, DeployTxnReceiptType, DeployedContractItem,
-        Felt, GetClassResult, InvokeTxnReceipt, InvokeTxnReceiptType, L1HandlerTxnReceipt,
-        L1HandlerTxnReceiptType, NoncesItem, PendingStateUpdate, ReplacedClassesItem,
-        SierraEntryPoint, StateDiff, StateUpdate, StorageEntriesItem, Txn, TxnHash, TxnReceipt,
+        Address, BlockHash, BlockStatus, BlockWithTxs, CommonReceiptProperties,
+        ContractClass, ContractClassEntryPoint, ContractStorageDiffItem,
+        DeclareTxn, DeclareTxnReceipt, DeclareTxnReceiptType,
+        DeclaredClassesItem, DeployAccountTxnReceipt,
+        DeployAccountTxnReceiptType, DeployTxnReceipt, DeployTxnReceiptType,
+        DeployedContractItem, Felt, GetClassResult, InvokeTxnReceipt,
+        InvokeTxnReceiptType, L1HandlerTxnReceipt, L1HandlerTxnReceiptType,
+        NoncesItem, PendingStateUpdate, ReplacedClassesItem, SierraEntryPoint,
+        StateDiff, StateUpdate, StorageEntriesItem, Txn, TxnHash, TxnReceipt,
         TxnStatus,
     },
     ctx::Context,
     seq::dto::{self, DeclaredClass, DeployedContract, ReplacedClass},
 };
 
-pub async fn detect_gaps<A: Send, B: Send>(ctx: Context<A, B>) -> anyhow::Result<Vec<u64>> {
+pub async fn detect_gaps<A: Send, B: Send>(
+    ctx: Context<A, B>,
+) -> anyhow::Result<Vec<u64>> {
     use yakvdb::typed::DB;
     let max = ctx.shared.lock().await.sync.hi.unwrap_or_default();
     let mut top = max;
@@ -267,7 +271,9 @@ pub fn tx_hash(tx: &Txn) -> &Felt {
         Txn::DeclareTxn(DeclareTxn::DeclareTxnV2(txn)) => {
             &txn.declare_txn_v1.common_txn_properties.transaction_hash.0
         }
-        Txn::DeployAccountTxn(txn) => &txn.common_txn_properties.transaction_hash.0,
+        Txn::DeployAccountTxn(txn) => {
+            &txn.common_txn_properties.transaction_hash.0
+        }
         Txn::DeployTxn(txn) => &txn.transaction_hash.0,
         Txn::InvokeTxn(txn) => &txn.common_txn_properties.transaction_hash.0,
         Txn::L1HandlerTxn(txn) => &txn.transaction_hash.0,
@@ -319,7 +325,9 @@ pub fn map_state_update(state: dto::StateUpdate) -> StateUpdate {
                             .collect(),
                     })
                     .collect(),
-                deprecated_declared_classes: state.state_diff.old_declared_contracts,
+                deprecated_declared_classes: state
+                    .state_diff
+                    .old_declared_contracts,
                 replaced_classes: state
                     .state_diff
                     .replaced_classes
@@ -415,7 +423,9 @@ pub fn get_txn_receipt(block: BlockWithTxs, tx_index: usize) -> TxnReceipt {
         Txn::DeployAccountTxn(txn) => {
             TxnReceipt::DeployAccountTxnReceipt(DeployAccountTxnReceipt {
                 common_receipt_properties,
-                contract_address: txn.deploy_account_txn_properties.contract_address_salt,
+                contract_address: txn
+                    .deploy_account_txn_properties
+                    .contract_address_salt,
                 r#type: DeployAccountTxnReceiptType::DeployAccount,
             })
         }
@@ -423,10 +433,12 @@ pub fn get_txn_receipt(block: BlockWithTxs, tx_index: usize) -> TxnReceipt {
             common_receipt_properties,
             r#type: InvokeTxnReceiptType::Invoke,
         }),
-        Txn::L1HandlerTxn(_) => TxnReceipt::L1HandlerTxnReceipt(L1HandlerTxnReceipt {
-            common_receipt_properties,
-            r#type: L1HandlerTxnReceiptType::L1Handler,
-        }),
+        Txn::L1HandlerTxn(_) => {
+            TxnReceipt::L1HandlerTxnReceipt(L1HandlerTxnReceipt {
+                common_receipt_properties,
+                r#type: L1HandlerTxnReceiptType::L1Handler,
+            })
+        }
     }
 }
 
@@ -511,7 +523,8 @@ mod tests {
 
     #[test]
     fn test_u256_from_hex() -> anyhow::Result<()> {
-        let hex = "55aaf50c8001b89bcc180c4be977ec519b401ced8366e2e2da78dc5285306d8";
+        let hex =
+            "55aaf50c8001b89bcc180c4be977ec519b401ced8366e2e2da78dc5285306d8";
         let num = U256::from_hex(hex)?;
         assert_eq!(num.into_str(), "0x".to_string() + hex);
         assert_eq!(num.into_str_pad(), "0x0".to_string() + hex);

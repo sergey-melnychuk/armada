@@ -17,7 +17,8 @@ fn test_parse_original_block() -> anyhow::Result<()> {
 fn test_parse_pending_block() -> anyhow::Result<()> {
     let json = fs::read_to_string("./etc/pending.json")?;
     let value: serde_json::Value = serde_json::from_str(&json)?;
-    let block: PendingBlockWithTxs = serde_json::from_value(patch_pending_block(value))?;
+    let block: PendingBlockWithTxs =
+        serde_json::from_value(patch_pending_block(value))?;
     assert!(!block.block_body_with_txs.transactions.is_empty());
     Ok(())
 }
@@ -26,7 +27,8 @@ fn test_parse_pending_block() -> anyhow::Result<()> {
 fn test_parse_latest_block() -> anyhow::Result<()> {
     let json = fs::read_to_string("./etc/latest.json")?;
     let value: serde_json::Value = serde_json::from_str(&json)?;
-    let block: PendingBlockWithTxs = serde_json::from_value(patch_block(value))?;
+    let block: PendingBlockWithTxs =
+        serde_json::from_value(patch_block(value))?;
     assert!(!block.block_body_with_txs.transactions.is_empty());
     Ok(())
 }

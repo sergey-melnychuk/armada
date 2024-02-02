@@ -27,7 +27,10 @@ impl TestEth {
 
 #[async_trait::async_trait]
 impl EthApi for TestEth {
-    async fn get_state(&self, _address: &str) -> anyhow::Result<armada::eth::State> {
+    async fn get_state(
+        &self,
+        _address: &str,
+    ) -> anyhow::Result<armada::eth::State> {
         let state = self.state().await;
         if let Some(state) = state.as_ref() {
             Ok(state.clone())

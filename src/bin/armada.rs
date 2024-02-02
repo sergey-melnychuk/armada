@@ -26,21 +26,24 @@ async fn main() -> anyhow::Result<()> {
         network: "mainnet".to_string(),
         eth_url: format!("https://mainnet.infura.io/v3/{token}"),
         seq_url: "https://alpha-mainnet.starknet.io".to_string(),
-        eth_contract_address: "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4".to_string(),
+        eth_contract_address: "0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4"
+            .to_string(),
     };
 
     let testnet = Profile {
         network: "testnet".to_string(),
         eth_url: format!("https://goerli.infura.io/v3/{token}"),
         seq_url: "https://alpha4.starknet.io".to_string(),
-        eth_contract_address: "0xde29d060D45901Fb19ED6C6e959EB22d8626708e".to_string(),
+        eth_contract_address: "0xde29d060D45901Fb19ED6C6e959EB22d8626708e"
+            .to_string(),
     };
 
     let integration = Profile {
         network: "integration".to_string(),
         eth_url: format!("https://goerli.infura.io/v3/{token}"),
         seq_url: "https://external.integration.starknet.io".to_string(),
-        eth_contract_address: "0xd5c325D183C592C94998000C5e0EED9e6655c020".to_string(),
+        eth_contract_address: "0xd5c325D183C592C94998000C5e0EED9e6655c020"
+            .to_string(),
     };
 
     let profile = match args.network {
@@ -114,8 +117,10 @@ async fn main() -> anyhow::Result<()> {
         if lo > 0 {
             use armada::db::Repo;
             let key = U64::from_u64(lo);
-            let lo_block_hash = ctx.db.blocks_index.read().await.lookup(&key)?.unwrap();
-            let lo_block = ctx.db.blocks.get(&lo_block_hash.into_str()).await?.unwrap();
+            let lo_block_hash =
+                ctx.db.blocks_index.read().await.lookup(&key)?.unwrap();
+            let lo_block =
+                ctx.db.blocks.get(&lo_block_hash.into_str()).await?.unwrap();
             let lo_parent_hash = lo_block.block_header.parent_hash.0;
             tx.send(Event::PullBlock(lo - 1, lo_parent_hash)).await.ok();
         }
@@ -147,12 +152,20 @@ async fn main() -> anyhow::Result<()> {
         let tx = tx.clone();
         let len = 2000;
         tokio::spawn(async move {
-            if let Some((number, hash)) = armada::util::check_chain(ctx, len).await? {
+            if let Some((number, hash)) =
+                armada::util::check_chain(ctx, len).await?
+            {
                 tracing::info!(at = number, "Broken chain detected");
-                let event = Event::PullBlock(number, armada::api::gen::Felt::try_new(&hash)?);
+                let event = Event::PullBlock(
+                    number,
+                    armada::api::gen::Felt::try_new(&hash)?,
+                );
                 tx.send(event).await?;
             } else {
-                tracing::info!(length = len, "Chain head validated successfully");
+                tracing::info!(
+                    length = len,
+                    "Chain head validated successfully"
+                );
             }
             Ok::<(), anyhow::Error>(())
         });

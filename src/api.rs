@@ -71,13 +71,17 @@ pub mod gen {
                 if value < MIN {
                     return Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("BlockNumber value {value} must be > {MIN}"),
+                        message: format!(
+                            "BlockNumber value {value} must be > {MIN}"
+                        ),
                     });
                 }
                 if value > MAX {
                     return Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("BlockNumber value {value} must be < {MAX}"),
+                        message: format!(
+                            "BlockNumber value {value} must be < {MAX}"
+                        ),
                     });
                 }
                 Ok(Self(value))
@@ -285,7 +289,8 @@ pub mod gen {
         use once_cell::sync::Lazy;
         use regex::Regex;
 
-        static CHAINID_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^0x[a-fA-F0-9]+$").unwrap());
+        static CHAINID_REGEX: Lazy<Regex> =
+            Lazy::new(|| Regex::new("^0x[a-fA-F0-9]+$").unwrap());
 
         impl ChainId {
             pub fn try_new(value: &str) -> Result<Self, jsonrpc::Error> {
@@ -294,7 +299,9 @@ pub mod gen {
                 } else {
                     Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("ChainId value does not match regex: {value}"),
+                        message: format!(
+                            "ChainId value does not match regex: {value}"
+                        ),
                     })
                 }
             }
@@ -644,7 +651,9 @@ pub mod gen {
                 } else {
                     Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("EthAddress value does not match regex: {value}"),
+                        message: format!(
+                            "EthAddress value does not match regex: {value}"
+                        ),
                     })
                 }
             }
@@ -756,8 +765,9 @@ pub mod gen {
         use once_cell::sync::Lazy;
         use regex::Regex;
 
-        static FELT_REGEX: Lazy<Regex> =
-            Lazy::new(|| Regex::new("^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$").unwrap());
+        static FELT_REGEX: Lazy<Regex> = Lazy::new(|| {
+            Regex::new("^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$").unwrap()
+        });
 
         // Workaround to support invalid Felts returned by the gateway.
         // TODO: clean up the impl, add some tests
@@ -780,8 +790,15 @@ pub mod gen {
                         if hex.is_empty() {
                             value.clone()
                         } else {
-                            let hex = hex.chars().skip_while(|c| c == &'0').collect::<String>();
-                            let hex = if hex.is_empty() { "0".to_string() } else { hex };
+                            let hex = hex
+                                .chars()
+                                .skip_while(|c| c == &'0')
+                                .collect::<String>();
+                            let hex = if hex.is_empty() {
+                                "0".to_string()
+                            } else {
+                                hex
+                            };
                             format!("0x{hex}")
                         }
                     })
@@ -797,7 +814,9 @@ pub mod gen {
                 } else {
                     Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("Felt value does not match regex: {value}"),
+                        message: format!(
+                            "Felt value does not match regex: {value}"
+                        ),
                     })
                 }
             }
@@ -1062,7 +1081,8 @@ pub mod gen {
         use once_cell::sync::Lazy;
         use regex::Regex;
 
-        static NUMASHEX_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^0x[a-fA-F0-9]+$").unwrap());
+        static NUMASHEX_REGEX: Lazy<Regex> =
+            Lazy::new(|| Regex::new("^0x[a-fA-F0-9]+$").unwrap());
 
         impl NumAsHex {
             pub fn try_new(value: &str) -> Result<Self, jsonrpc::Error> {
@@ -1071,7 +1091,9 @@ pub mod gen {
                 } else {
                     Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("NumAsHex value does not match regex: {value}"),
+                        message: format!(
+                            "NumAsHex value does not match regex: {value}"
+                        ),
                     })
                 }
             }
@@ -1269,7 +1291,9 @@ pub mod gen {
                 } else {
                     Err(jsonrpc::Error {
                         code: 1001,
-                        message: format!("StorageKey value does not match regex: {value}"),
+                        message: format!(
+                            "StorageKey value does not match regex: {value}"
+                        ),
                     })
                 }
             }
@@ -1680,7 +1704,9 @@ pub mod gen {
 
     // object: 'simulateTransaction_simulated_transactions'
     #[derive(Clone, Debug, Deserialize, Serialize)]
-    pub struct SimulateTransactionSimulatedTransactions(pub Vec<SimulatedTransaction>); // name == binding_name
+    pub struct SimulateTransactionSimulatedTransactions(
+        pub Vec<SimulatedTransaction>,
+    ); // name == binding_name
 
     // object: 'simulation_flags'
     #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1843,7 +1869,9 @@ pub mod gen {
         /// Summary: Get the most recent accepted block number
         /// Description:
         ///
-        async fn blockNumber(&self) -> std::result::Result<BlockNumber, jsonrpc::Error>;
+        async fn blockNumber(
+            &self,
+        ) -> std::result::Result<BlockNumber, jsonrpc::Error>;
 
         /// Method: 'starknet_blockHashAndNumber'
         /// Summary: Get the most recent accepted block hash and number
@@ -1857,7 +1885,8 @@ pub mod gen {
         /// Summary: Return the currently configured StarkNet chain id
         /// Description:
         ///
-        async fn chainId(&self) -> std::result::Result<ChainId, jsonrpc::Error>;
+        async fn chainId(&self)
+            -> std::result::Result<ChainId, jsonrpc::Error>;
 
         /// Method: 'starknet_pendingTransactions'
         /// Summary: Returns the transactions in the transaction pool, recognized by this sequencer
@@ -1871,7 +1900,9 @@ pub mod gen {
         /// Summary: Returns an object about the sync status, or false if the node is not synching
         /// Description:
         ///
-        async fn syncing(&self) -> std::result::Result<SyncingSyncing, jsonrpc::Error>;
+        async fn syncing(
+            &self,
+        ) -> std::result::Result<SyncingSyncing, jsonrpc::Error>;
 
         /// Method: 'starknet_getEvents'
         /// Summary: Returns all events matching the given filter
@@ -1917,7 +1948,10 @@ pub mod gen {
         async fn addDeployAccountTransaction(
             &self,
             deploy_account_transaction: BroadcastedDeployAccountTxn,
-        ) -> std::result::Result<AddDeployAccountTransactionResult, jsonrpc::Error>;
+        ) -> std::result::Result<
+            AddDeployAccountTransactionResult,
+            jsonrpc::Error,
+        >;
 
         /// Method: 'starknet_traceTransaction'
         /// Summary: For a given executed transaction, return the trace of its execution, including internal calls
@@ -1937,7 +1971,10 @@ pub mod gen {
             block_id: BlockId,
             transaction: Transaction,
             simulation_flags: SimulationFlags,
-        ) -> std::result::Result<SimulateTransactionSimulatedTransactions, jsonrpc::Error>;
+        ) -> std::result::Result<
+            SimulateTransactionSimulatedTransactions,
+            jsonrpc::Error,
+        >;
 
         /// Method: 'starknet_traceBlockTransactions'
         /// Summary: Retrieve traces for all transactions in the given block
@@ -1961,16 +1998,21 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id) = args_by_pos;
-                ArgByName { block_id }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id) = args_by_pos;
+                        ArgByName { block_id }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { block_id } = args;
@@ -1996,16 +2038,21 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id) = args_by_pos;
-                ArgByName { block_id }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id) = args_by_pos;
+                        ArgByName { block_id }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { block_id } = args;
@@ -2031,16 +2078,21 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id) = args_by_pos;
-                ArgByName { block_id }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id) = args_by_pos;
+                        ArgByName { block_id }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { block_id } = args;
@@ -2068,20 +2120,26 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(contract_address, key, block_id) = args_by_pos;
-                ArgByName {
-                    contract_address,
-                    key,
-                    block_id,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(contract_address, key, block_id) =
+                            args_by_pos;
+                        ArgByName {
+                            contract_address,
+                            key,
+                            block_id,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2111,16 +2169,21 @@ pub mod gen {
             transaction_hash: TxnHash,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(transaction_hash) = args_by_pos;
-                ArgByName { transaction_hash }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(transaction_hash) = args_by_pos;
+                        ArgByName { transaction_hash }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { transaction_hash } = args;
@@ -2147,16 +2210,21 @@ pub mod gen {
             index: Index,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id, index) = args_by_pos;
-                ArgByName { block_id, index }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id, index) = args_by_pos;
+                        ArgByName { block_id, index }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { block_id, index } = args;
@@ -2182,16 +2250,21 @@ pub mod gen {
             transaction_hash: TxnHash,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(transaction_hash) = args_by_pos;
-                ArgByName { transaction_hash }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(transaction_hash) = args_by_pos;
+                        ArgByName { transaction_hash }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { transaction_hash } = args;
@@ -2205,7 +2278,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_getClass<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getClass<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Felt);
 
@@ -2215,19 +2291,24 @@ pub mod gen {
             class_hash: Felt,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id, class_hash) = args_by_pos;
-                ArgByName {
-                    block_id,
-                    class_hash,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id, class_hash) = args_by_pos;
+                        ArgByName {
+                            block_id,
+                            class_hash,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2257,19 +2338,24 @@ pub mod gen {
             contract_address: Address,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id, contract_address) = args_by_pos;
-                ArgByName {
-                    block_id,
-                    contract_address,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id, contract_address) = args_by_pos;
+                        ArgByName {
+                            block_id,
+                            contract_address,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2286,7 +2372,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_getClassAt<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getClassAt<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Address);
 
@@ -2296,19 +2385,24 @@ pub mod gen {
             contract_address: Address,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id, contract_address) = args_by_pos;
-                ArgByName {
-                    block_id,
-                    contract_address,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id, contract_address) = args_by_pos;
+                        ArgByName {
+                            block_id,
+                            contract_address,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2337,16 +2431,21 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id) = args_by_pos;
-                ArgByName { block_id }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id) = args_by_pos;
+                        ArgByName { block_id }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { block_id } = args;
@@ -2360,7 +2459,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_call<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_call<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(FunctionCall, BlockId);
 
@@ -2370,16 +2472,21 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(request, block_id) = args_by_pos;
-                ArgByName { request, block_id }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(request, block_id) = args_by_pos;
+                        ArgByName { request, block_id }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { request, block_id } = args;
@@ -2393,7 +2500,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_estimateFee<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_estimateFee<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(Request, BlockId);
 
@@ -2403,16 +2513,21 @@ pub mod gen {
             block_id: BlockId,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(request, block_id) = args_by_pos;
-                ArgByName { request, block_id }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(request, block_id) = args_by_pos;
+                        ArgByName { request, block_id }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { request, block_id } = args;
@@ -2452,7 +2567,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_chainId<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_chainId<RPC: Rpc>(
+        rpc: &RPC,
+        _params: &Value,
+    ) -> jsonrpc::Response {
         match rpc.chainId().await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
@@ -2475,7 +2593,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_syncing<RPC: Rpc>(rpc: &RPC, _params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_syncing<RPC: Rpc>(
+        rpc: &RPC,
+        _params: &Value,
+    ) -> jsonrpc::Response {
         match rpc.syncing().await {
             Ok(ret) => match serde_json::to_value(ret) {
                 Ok(ret) => jsonrpc::Response::result(ret),
@@ -2485,7 +2606,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_getEvents<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getEvents<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(Filter);
 
@@ -2494,16 +2618,21 @@ pub mod gen {
             filter: Filter,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(filter) = args_by_pos;
-                ArgByName { filter }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(filter) = args_by_pos;
+                        ArgByName { filter }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { filter } = args;
@@ -2517,7 +2646,10 @@ pub mod gen {
         }
     }
 
-    async fn handle_starknet_getNonce<RPC: Rpc>(rpc: &RPC, params: &Value) -> jsonrpc::Response {
+    async fn handle_starknet_getNonce<RPC: Rpc>(
+        rpc: &RPC,
+        params: &Value,
+    ) -> jsonrpc::Response {
         #[derive(Deserialize, Serialize)]
         struct ArgByPos(BlockId, Address);
 
@@ -2527,19 +2659,24 @@ pub mod gen {
             contract_address: Address,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id, contract_address) = args_by_pos;
-                ArgByName {
-                    block_id,
-                    contract_address,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id, contract_address) = args_by_pos;
+                        ArgByName {
+                            block_id,
+                            contract_address,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2568,16 +2705,21 @@ pub mod gen {
             invoke_transaction: BroadcastedInvokeTxn,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(invoke_transaction) = args_by_pos;
-                ArgByName { invoke_transaction }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(invoke_transaction) = args_by_pos;
+                        ArgByName { invoke_transaction }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { invoke_transaction } = args;
@@ -2603,18 +2745,23 @@ pub mod gen {
             declare_transaction: BroadcastedDeclareTxn,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(declare_transaction) = args_by_pos;
-                ArgByName {
-                    declare_transaction,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(declare_transaction) = args_by_pos;
+                        ArgByName {
+                            declare_transaction,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2642,18 +2789,23 @@ pub mod gen {
             deploy_account_transaction: BroadcastedDeployAccountTxn,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(deploy_account_transaction) = args_by_pos;
-                ArgByName {
-                    deploy_account_transaction,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(deploy_account_transaction) = args_by_pos;
+                        ArgByName {
+                            deploy_account_transaction,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2684,16 +2836,21 @@ pub mod gen {
             transaction_hash: TxnHash,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(transaction_hash) = args_by_pos;
-                ArgByName { transaction_hash }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(transaction_hash) = args_by_pos;
+                        ArgByName { transaction_hash }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { transaction_hash } = args;
@@ -2721,20 +2878,26 @@ pub mod gen {
             simulation_flags: SimulationFlags,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_id, transaction, simulation_flags) = args_by_pos;
-                ArgByName {
-                    block_id,
-                    transaction,
-                    simulation_flags,
-                }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_id, transaction, simulation_flags) =
+                            args_by_pos;
+                        ArgByName {
+                            block_id,
+                            transaction,
+                            simulation_flags,
+                        }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName {
@@ -2767,16 +2930,21 @@ pub mod gen {
             block_hash: BlockHash,
         }
 
-        let args = serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
-            serde_json::from_value::<ArgByPos>(params.clone()).map(|args_by_pos| {
-                let ArgByPos(block_hash) = args_by_pos;
-                ArgByName { block_hash }
-            })
-        });
+        let args =
+            serde_json::from_value::<ArgByName>(params.clone()).or_else(|_| {
+                serde_json::from_value::<ArgByPos>(params.clone()).map(
+                    |args_by_pos| {
+                        let ArgByPos(block_hash) = args_by_pos;
+                        ArgByName { block_hash }
+                    },
+                )
+            });
 
         let args: ArgByName = match args {
             Ok(args) => args,
-            Err(e) => return jsonrpc::Response::error(-32602, "Invalid params"),
+            Err(e) => {
+                return jsonrpc::Response::error(-32602, "Invalid params")
+            }
         };
 
         let ArgByName { block_hash } = args;
@@ -2790,41 +2958,63 @@ pub mod gen {
         }
     }
 
-    pub async fn handle<RPC: Rpc>(rpc: &RPC, req: &jsonrpc::Request) -> jsonrpc::Response {
+    pub async fn handle<RPC: Rpc>(
+        rpc: &RPC,
+        req: &jsonrpc::Request,
+    ) -> jsonrpc::Response {
         let params = &req.params.clone().unwrap_or_default();
 
         let response = match req.method.as_str() {
             "starknet_getBlockWithTxHashes" => {
                 handle_starknet_getBlockWithTxHashes(rpc, params).await
             }
-            "starknet_getBlockWithTxs" => handle_starknet_getBlockWithTxs(rpc, params).await,
-            "starknet_getStateUpdate" => handle_starknet_getStateUpdate(rpc, params).await,
-            "starknet_getStorageAt" => handle_starknet_getStorageAt(rpc, params).await,
+            "starknet_getBlockWithTxs" => {
+                handle_starknet_getBlockWithTxs(rpc, params).await
+            }
+            "starknet_getStateUpdate" => {
+                handle_starknet_getStateUpdate(rpc, params).await
+            }
+            "starknet_getStorageAt" => {
+                handle_starknet_getStorageAt(rpc, params).await
+            }
             "starknet_getTransactionByHash" => {
                 handle_starknet_getTransactionByHash(rpc, params).await
             }
             "starknet_getTransactionByBlockIdAndIndex" => {
-                handle_starknet_getTransactionByBlockIdAndIndex(rpc, params).await
+                handle_starknet_getTransactionByBlockIdAndIndex(rpc, params)
+                    .await
             }
             "starknet_getTransactionReceipt" => {
                 handle_starknet_getTransactionReceipt(rpc, params).await
             }
             "starknet_getClass" => handle_starknet_getClass(rpc, params).await,
-            "starknet_getClassHashAt" => handle_starknet_getClassHashAt(rpc, params).await,
-            "starknet_getClassAt" => handle_starknet_getClassAt(rpc, params).await,
+            "starknet_getClassHashAt" => {
+                handle_starknet_getClassHashAt(rpc, params).await
+            }
+            "starknet_getClassAt" => {
+                handle_starknet_getClassAt(rpc, params).await
+            }
             "starknet_getBlockTransactionCount" => {
                 handle_starknet_getBlockTransactionCount(rpc, params).await
             }
             "starknet_call" => handle_starknet_call(rpc, params).await,
-            "starknet_estimateFee" => handle_starknet_estimateFee(rpc, params).await,
-            "starknet_blockNumber" => handle_starknet_blockNumber(rpc, params).await,
-            "starknet_blockHashAndNumber" => handle_starknet_blockHashAndNumber(rpc, params).await,
+            "starknet_estimateFee" => {
+                handle_starknet_estimateFee(rpc, params).await
+            }
+            "starknet_blockNumber" => {
+                handle_starknet_blockNumber(rpc, params).await
+            }
+            "starknet_blockHashAndNumber" => {
+                handle_starknet_blockHashAndNumber(rpc, params).await
+            }
             "starknet_chainId" => handle_starknet_chainId(rpc, params).await,
             "starknet_pendingTransactions" => {
                 handle_starknet_pendingTransactions(rpc, params).await
             }
             "starknet_syncing" => handle_starknet_syncing(rpc, params).await,
-            "starknet_getEvents" => handle_starknet_getEvents(rpc, params).await,
+            "starknet_getEvents" => {
+                handle_starknet_getEvents(rpc, params).await
+            }
             "starknet_getNonce" => handle_starknet_getNonce(rpc, params).await,
             "starknet_addInvokeTransaction" => {
                 handle_starknet_addInvokeTransaction(rpc, params).await
@@ -2835,7 +3025,9 @@ pub mod gen {
             "starknet_addDeployAccountTransaction" => {
                 handle_starknet_addDeployAccountTransaction(rpc, params).await
             }
-            "starknet_traceTransaction" => handle_starknet_traceTransaction(rpc, params).await,
+            "starknet_traceTransaction" => {
+                handle_starknet_traceTransaction(rpc, params).await
+            }
             "starknet_simulateTransaction" => {
                 handle_starknet_simulateTransaction(rpc, params).await
             }
@@ -2854,23 +3046,33 @@ pub mod gen {
 
     pub mod error {
         pub const BLOCK_NOT_FOUND: Error = Error(24, "Block not found");
-        pub const CLASS_HASH_NOT_FOUND: Error = Error(28, "Class hash not found");
+        pub const CLASS_HASH_NOT_FOUND: Error =
+            Error(28, "Class hash not found");
         pub const CONTRACT_ERROR: Error = Error(40, "Contract error");
         pub const CONTRACT_NOT_FOUND: Error = Error(20, "Contract not found");
-        pub const FAILED_TO_RECEIVE_TXN: Error = Error(1, "Failed to write transaction");
+        pub const FAILED_TO_RECEIVE_TXN: Error =
+            Error(1, "Failed to write transaction");
         pub const INVALID_BLOCK_HASH: Error = Error(24, "Invalid block hash");
         pub const INVALID_CALL_DATA: Error = Error(22, "Invalid call data");
         pub const INVALID_CONTINUATION_TOKEN: Error =
             Error(33, "The supplied continuation token is invalid or unknown");
-        pub const INVALID_CONTRACT_CLASS: Error = Error(50, "Invalid contract class");
-        pub const INVALID_MESSAGE_SELECTOR: Error = Error(21, "Invalid message selector");
-        pub const INVALID_TXN_HASH: Error = Error(25, "Invalid transaction hash");
-        pub const INVALID_TXN_INDEX: Error = Error(27, "Invalid transaction index in a block");
+        pub const INVALID_CONTRACT_CLASS: Error =
+            Error(50, "Invalid contract class");
+        pub const INVALID_MESSAGE_SELECTOR: Error =
+            Error(21, "Invalid message selector");
+        pub const INVALID_TXN_HASH: Error =
+            Error(25, "Invalid transaction hash");
+        pub const INVALID_TXN_INDEX: Error =
+            Error(27, "Invalid transaction index in a block");
         pub const NO_BLOCKS: Error = Error(32, "There are no blocks");
-        pub const NO_TRACE_AVAILABLE: Error = Error(10, "No trace available for transaction");
-        pub const PAGE_SIZE_TOO_BIG: Error = Error(31, "Requested page size is too big");
-        pub const TOO_MANY_KEYS_IN_FILTER: Error = Error(34, "Too many keys provided in a filter");
-        pub const TXN_HASH_NOT_FOUND: Error = Error(25, "Transaction hash not found");
+        pub const NO_TRACE_AVAILABLE: Error =
+            Error(10, "No trace available for transaction");
+        pub const PAGE_SIZE_TOO_BIG: Error =
+            Error(31, "Requested page size is too big");
+        pub const TOO_MANY_KEYS_IN_FILTER: Error =
+            Error(34, "Too many keys provided in a filter");
+        pub const TXN_HASH_NOT_FOUND: Error =
+            Error(25, "Transaction hash not found");
 
         pub struct Error(i64, &'static str);
 

@@ -61,20 +61,38 @@ pub mod dto {
 
 #[async_trait::async_trait]
 pub trait SeqApi: Send + Sync + Clone + 'static {
-    async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<BlockWithTxs>;
-    async fn get_block_by_hash(&self, block_hash: &str) -> anyhow::Result<BlockWithTxs>;
+    async fn get_block_by_number(
+        &self,
+        block_number: u64,
+    ) -> anyhow::Result<BlockWithTxs>;
+    async fn get_block_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> anyhow::Result<BlockWithTxs>;
     async fn get_latest_block(&self) -> anyhow::Result<BlockWithTxs>;
     async fn get_pending_block(&self) -> anyhow::Result<PendingBlockWithTxs>;
 
-    async fn get_state_by_number(&self, block_number: u64) -> anyhow::Result<dto::StateUpdate>;
-    async fn get_state_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::StateUpdate>;
+    async fn get_state_by_number(
+        &self,
+        block_number: u64,
+    ) -> anyhow::Result<dto::StateUpdate>;
+    async fn get_state_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> anyhow::Result<dto::StateUpdate>;
 
-    async fn get_class_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::Class>;
+    async fn get_class_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> anyhow::Result<dto::Class>;
 }
 
 #[async_trait::async_trait]
 impl SeqApi for SeqClient {
-    async fn get_block_by_number(&self, block_number: u64) -> anyhow::Result<BlockWithTxs> {
+    async fn get_block_by_number(
+        &self,
+        block_number: u64,
+    ) -> anyhow::Result<BlockWithTxs> {
         self.get(
             "/feeder_gateway/get_block",
             &format!("blockNumber={block_number}"),
@@ -83,7 +101,10 @@ impl SeqApi for SeqClient {
         .await
     }
 
-    async fn get_block_by_hash(&self, block_hash: &str) -> anyhow::Result<BlockWithTxs> {
+    async fn get_block_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> anyhow::Result<BlockWithTxs> {
         self.get(
             "/feeder_gateway/get_block",
             &format!("blockHash={}", block_hash),
@@ -110,7 +131,10 @@ impl SeqApi for SeqClient {
         .await
     }
 
-    async fn get_state_by_number(&self, block_number: u64) -> anyhow::Result<dto::StateUpdate> {
+    async fn get_state_by_number(
+        &self,
+        block_number: u64,
+    ) -> anyhow::Result<dto::StateUpdate> {
         self.get(
             "/feeder_gateway/get_state_update",
             &format!("blockNumber={block_number}"),
@@ -119,7 +143,10 @@ impl SeqApi for SeqClient {
         .await
     }
 
-    async fn get_state_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::StateUpdate> {
+    async fn get_state_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> anyhow::Result<dto::StateUpdate> {
         self.get(
             "/feeder_gateway/get_state_update",
             &format!("blockHash={}", block_hash),
@@ -128,7 +155,10 @@ impl SeqApi for SeqClient {
         .await
     }
 
-    async fn get_class_by_hash(&self, block_hash: &str) -> anyhow::Result<dto::Class> {
+    async fn get_class_by_hash(
+        &self,
+        block_hash: &str,
+    ) -> anyhow::Result<dto::Class> {
         self.get(
             "/feeder_gateway/get_class_by_hash",
             &format!("classHash={}", block_hash),
@@ -185,7 +215,8 @@ mod tests {
         const URL: &str = "https://alpha4.starknet.io";
 
         const NUMBER: u64 = 805543;
-        const HASH: &str = "0x212440a93e19eb76b3da51b13317152d9412913385d7004079c5b0ff6b224af";
+        const HASH: &str =
+            "0x212440a93e19eb76b3da51b13317152d9412913385d7004079c5b0ff6b224af";
 
         #[tokio::test]
         async fn test_block_by_number() -> anyhow::Result<()> {
@@ -199,7 +230,10 @@ mod tests {
         async fn test_block_by_hash() -> anyhow::Result<()> {
             let seq = SeqClient::new(URL);
             let block = seq.get_block_by_hash(HASH).await?;
-            assert_eq!(block.block_header.block_number.as_ref(), &(NUMBER as i64));
+            assert_eq!(
+                block.block_header.block_number.as_ref(),
+                &(NUMBER as i64)
+            );
             Ok(())
         }
 
@@ -208,7 +242,9 @@ mod tests {
         async fn test_block_latest() -> anyhow::Result<()> {
             let seq = SeqClient::new(URL);
             let block = seq.get_latest_block().await?;
-            assert!(block.block_header.block_number.as_ref() > &(NUMBER as i64));
+            assert!(
+                block.block_header.block_number.as_ref() > &(NUMBER as i64)
+            );
             Ok(())
         }
 

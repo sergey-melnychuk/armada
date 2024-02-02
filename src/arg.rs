@@ -9,7 +9,11 @@ pub struct Args {
     pub flags: HashSet<String>,
 }
 
-fn get_pos(args: &[String], idx: usize, name: &'static str) -> anyhow::Result<String> {
+fn get_pos(
+    args: &[String],
+    idx: usize,
+    name: &'static str,
+) -> anyhow::Result<String> {
     if let Some(val) = args.get(idx) {
         return Ok(val.clone());
     }

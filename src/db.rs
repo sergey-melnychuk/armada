@@ -203,7 +203,10 @@ impl Storage {
     }
 }
 
-pub fn get_or_below<K, V>(db: &Store<K, V>, key: &K) -> anyhow::Result<Option<(K, V)>>
+pub fn get_or_below<K, V>(
+    db: &Store<K, V>,
+    key: &K,
+) -> anyhow::Result<Option<(K, V)>>
 where
     K: Clone + AsRef<[u8]> + for<'a> From<&'a [u8]>,
     V: AsRef<[u8]> + for<'a> From<&'a [u8]>,

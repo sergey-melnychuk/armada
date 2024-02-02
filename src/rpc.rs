@@ -116,7 +116,10 @@ where
     )))
 }
 
-pub async fn serve<ETH, SEQ>(addr: &SocketAddr, ctx: Context<ETH, SEQ>) -> (SocketAddr, Waiter)
+pub async fn serve<ETH, SEQ>(
+    addr: &SocketAddr,
+    ctx: Context<ETH, SEQ>,
+) -> (SocketAddr, Waiter)
 where
     ETH: EthApi,
     SEQ: SeqApi,
