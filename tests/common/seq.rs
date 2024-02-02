@@ -31,14 +31,14 @@ impl SeqApi for TestSeq {
         &self,
         _block_number: u64,
     ) -> anyhow::Result<armada::api::gen::BlockWithTxs> {
-        anyhow::bail!("Block not found");
+        Err(anyhow::anyhow!("Block not found"))
     }
 
     async fn get_block_by_hash(
         &self,
         _block_hash: &str,
     ) -> anyhow::Result<armada::api::gen::BlockWithTxs> {
-        anyhow::bail!("Block not found");
+        Err(anyhow::anyhow!("Block not found"))
     }
 
     async fn get_latest_block(&self) -> anyhow::Result<armada::api::gen::BlockWithTxs> {
@@ -46,31 +46,31 @@ impl SeqApi for TestSeq {
         if let Some(latest) = latest.as_ref() {
             return Ok(latest.clone());
         }
-        anyhow::bail!("Block not found");
+        Err(anyhow::anyhow!("Block not found"))
     }
 
     async fn get_pending_block(&self) -> anyhow::Result<armada::api::gen::PendingBlockWithTxs> {
-        anyhow::bail!("Block not found");
+        Err(anyhow::anyhow!("Block not found"))
     }
 
     async fn get_state_by_number(
         &self,
         _block_number: u64,
     ) -> anyhow::Result<armada::seq::dto::StateUpdate> {
-        anyhow::bail!("State Update not found");
+        Err(anyhow::anyhow!("State Update not found"))
     }
 
     async fn get_state_by_hash(
         &self,
         _block_hash: &str,
     ) -> anyhow::Result<armada::seq::dto::StateUpdate> {
-        anyhow::bail!("State Update not found");
+        Err(anyhow::anyhow!("State Update not found"))
     }
 
     async fn get_class_by_hash(
         &self,
         _block_hash: &str,
     ) -> anyhow::Result<armada::seq::dto::Class> {
-        anyhow::bail!("Class not found");
+        Err(anyhow::anyhow!("Class not found"))
     }
 }
